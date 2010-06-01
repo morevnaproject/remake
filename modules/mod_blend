@@ -1,0 +1,95 @@
+#!/bin/bash
+
+if [[ $FORMAT == 'mpg' ]]; then
+cat >> Makefile << EOF
+$RENDERPATH: $RENDERPATH/file.lst
+	#TODO: ffmpeg stuff
+EOF
+RENDERPATH="$(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').png"
+FORMAT='png'
+fi
+
+BLENDERFORMAT=`echo $FORMAT | tr '[:lower:]' '[:upper:]'`
+RENDERSCRIPT="$(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').py"
+
+[ ! -f $RENDERSCRIPT ] || rm -rf $RENDERSCRIPT
+cat >> $RENDERSCRIPT << EOF
+from Blender import Scene, Object
+import sys
+
+def main():
+	for sce in Scene.Get():
+		rend = sce.render
+		rend.freeImages = True
+		rend.saveBuffers = True
+		rend.compositeFree = True
+		
+		rend.oversampling = True
+		
+		rend.OSALevel = 8
+		
+		rend.fieldRendering = False
+		
+		if sce.getName() == 'Scene':
+			sce.makeCurrent()
+		
+	# Settings for render scene
+	sce = Scene.GetCurrent()
+	rend = sce.render
+	
+	rend.renderwinSize = 100
+	
+	#rend.enablePremultiply()
+	
+	rend.enableRGBAColor()
+	
+	rend.sizeX = $WIDTH
+	rend.sizeY = $HEIGHT
+	
+	rend.xParts = 4
+	rend.yParts = 4
+	
+	rend.fps = $FPS
+	
+	# OPENEXR stuff
+	#rend.zbuf = False
+	#rend.halfFloat = True
+	#rend.preview = False
+	
+	rend.touch = False
+	rend.noOverwrite = False
+	
+	rend.imageType = Scene.Render.$BLENDERFORMAT
+
+if __name__ == '__main__':
+	main()
+EOF
+
+if [ ! -z $SINGLE ]; then
+	RANGE="-f $SINGLE"
+	OUTPUT="\`pwd\`/${RENDERPATH}-######"
+	echo "$RENDERPATH: $TARGET $DEPS" >> Makefile
+	echo "	rm -rf $RENDERPATH" >> Makefile
+	echo "	blender -b $TARGET -S Scene -P \`pwd\`/$RENDERSCRIPT -o $OUTPUT -x 0 -F $BLENDERFORMAT -t 0 $RANGE" >> Makefile
+	echo "	mv ${RENDERPATH}-`printf %06d $SINGLE` $RENDERPATH" >> Makefile
+else
+	RANGE="-a"
+	OUTPUT="\`pwd\`/$RENDERPATH/file"
+	echo "$RENDERPATH: $RENDERPATH/file.lst" >> Makefile
+	echo ".PHONY: $RENDERPATH" >> Makefile
+	echo "$RENDERPATH/file.lst: $TARGET $DEPS" >> Makefile
+	echo "	rm -rf $RENDERPATH" >> Makefile
+	echo "	mkdir -p $RENDERPATH" >> Makefile
+	echo "	blender -b $TARGET -S Scene -P \`pwd\`/$RENDERSCRIPT -o $OUTPUT -x 1 -F $BLENDERFORMAT -t 0 $RANGE" >> Makefile
+	echo "	echo "FPS $FPS" > $RENDERPATH/file.lst" >> Makefile
+	echo "	( cd $RENDERPATH; ls -1 *.$FORMAT >> file.lst )" >> Makefile
+fi
+
+echo "	touch `dirname $RENDERPATH`/.$FORMAT" >> Makefile # This line is mandatory here
+
+echo "$RENDERPATH-clean:" >> Makefile
+if [[ $FORMAT == 'mpg' ]]; then
+	echo "	rm -f $(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').mpg" >> Makefile
+fi
+echo "	rm -rf $RENDERPATH" >> Makefile
+echo "	rm -rf $RENDERSCRIPT" >> Makefile

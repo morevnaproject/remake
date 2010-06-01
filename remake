@@ -1,0 +1,280 @@
+#!/bin/bash
+
+set -e
+
+SCRIPT_PATH="${BASH_SOURCE[0]}";
+if([ -h "${SCRIPT_PATH}" ]) then
+  while([ -h "${SCRIPT_PATH}" ]) do SCRIPT_PATH=`readlink "${SCRIPT_PATH}"`; done
+fi
+pushd . > /dev/null
+cd `dirname ${SCRIPT_PATH}` > /dev/null
+SCRIPT_PATH=`pwd`;
+popd  > /dev/null
+#SCRIPT_PATH=$(cd `dirname $0`; pwd)
+#REPOROOT=$(dirname `git rev-parse --git-dir`)
+
+relpath(){
+	if [[ "$1" == "$2" ]]
+	then
+		echo "."
+	fi
+
+	IFS="/"
+
+	current=($1)
+	absolute=($2)
+
+	abssize=${#absolute[@]}
+	cursize=${#current[@]}
+
+	while [[ ${absolute[$level]} == ${current[$level]} ]]
+	do
+		(( level++ ))
+		if (( level > abssize || level > cursize ))
+		then
+			break
+		fi
+	done
+
+	for ((i = level; i < cursize; i++))
+	do
+		if ((i > level))
+		then
+			newpath=$newpath"/"
+		fi
+		newpath=$newpath".."
+	done
+
+	for ((i = level; i < abssize; i++))
+	do
+		if [[ -n $newpath ]]
+		then
+			newpath=$newpath"/"
+		fi
+		newpath=$newpath${absolute[i]}
+	done
+
+	echo "$newpath"
+}
+
+mod_norender(){
+	echo "${RENDERPATH}: $TARGET $DEPS" >> Makefile
+	echo "	touch $RENDERPATH" >> Makefile
+	echo "	touch `dirname $RENDERPATH`/.$FORMAT" >> Makefile # This line is mandatory here
+	echo "${RENDERPATH}.clean:" >> Makefile
+	echo "	rm -rf ${RENDERPATH}" >> Makefile
+}
+
+get_project_root() {
+	if [ -f ./remake.conf ]; then
+		pwd
+	else
+		if [[ `pwd` == '/' ]]; then
+			echo "ERROR: Not a 'remake' project."
+			exit
+		fi
+		pushd .. >/dev/null
+		get_project_root
+		popd >/dev/null
+	fi
+}
+
+PROJECTROOT=`get_project_root`
+
+#creating render dir
+#[ -d $REPOROOT/render ] || mkdir -p $REPOROOT/render
+
+#ensure that render dir ignored by git
+[ -e $PROJECTROOT/.gitignore ] || touch $PROJECTROOT/.gitignore
+( cat $PROJECTROOT/.gitignore | egrep "render/\*" > /dev/null ) || ( echo "render/*" >> $PROJECTROOT/.gitignore )
+
+if [ -f ./Makefile.re ]; then
+	[ ! -f Makefile ] || rm Makefile
+	touch Makefile
+	
+	while read LINE; do
+		#Re-reading config
+		. $PROJECTROOT/remake.conf
+		CONFIGPATH=$(relpath `pwd` $PROJECTROOT/remake.conf)
+		
+		TARGET=${LINE%%:*}'|'
+		OPTIONS=${TARGET#*|}
+		TARGET=${TARGET%%|*}
+		echo "-> $TARGET"
+		
+		I=1
+		FIELD=`echo $OPTIONS | cut -d '|' -f $I`
+		while ! [ -z $FIELD ]; do
+			NAME=${FIELD%=*}
+			VALUE=${FIELD#*=}
+			case $NAME in
+				'NORENDER')
+					VALUE=1
+					NORENDER=$VALUE
+					;;
+				'SINGLE')
+					SINGLE=$VALUE
+					;;
+				'WIDTH')
+					WIDTH=$VALUE
+					;;
+				'HEIGHT')
+					HEIGHT=$VALUE
+					;;
+				'FORMAT')
+					FORMAT=$VALUE
+					;;
+			esac
+			echo $NAME $VALUE
+			
+			I=`expr $I + 1`
+			FIELD=`echo $OPTIONS | cut -d '|' -f $I`
+		done
+		
+		RENDERPREFIX=$(pwd | sed -e "s|$PROJECTROOT||")
+		[ -d $PROJECTROOT/render${RENDERPREFIX} ] || mkdir -p $PROJECTROOT/render${RENDERPREFIX}
+		RENDERPATH="$(relpath `pwd` $PROJECTROOT/render${RENDERPREFIX})/$TARGET"
+		# Target alias
+		ALIASCODE="${RENDERPATH}: $RENDERPATH.${FORMAT}\n.PHONY: ${RENDERPATH}\n"
+		# Real target
+		RENDERPATH=$RENDERPATH.$FORMAT
+		EXT=${TARGET##*.}
+		
+		RAWDEPS=${LINE#*:}
+		DEPS=""
+		DEPSCODE=""
+		DEPSCLEANCODE=""
+		for DEPENDENCY in $RAWDEPS; do
+			#checking if dependency is external
+			EXTERNAL=0
+			echo "--> Checking '${DEPENDENCY}'..."
+			if ( [ -d ${DEPENDENCY} ] && [ -e ${DEPENDENCY}/Makefile.re ] ); then
+				EXTERNAL=1
+				DEPDIR=${DEPENDENCY}
+				DEPFILE=''
+				DEPEXT=$FORMAT
+			else 
+				if (( echo ${DEPENDENCY} | grep -E "/" ) && ( cat "`dirname ${DEPENDENCY}`/Makefile.re" | grep -E "^${DEPENDENCY}(\|.*)*:" >/dev/null ) ); then
+					EXTERNAL=1
+					DEPDIR=`dirname ${DEPENDENCY}`
+					DEPFILE=`basename ${DEPENDENCY}`
+					# determining extension
+					DEPEXT=$FORMAT
+					LINE=$(cat "`dirname ${DEPENDENCY}`/Makefile.re" | grep -E "^${DEPENDENCY}(\|.*)*:")
+					FIELDS=${LINE%%:*}'|'
+					FIELDS=${FIELDS#*|}
+					I=1
+					FIELDS=`echo $FIELDS | cut -d '|' -f $I`
+					while ! [ -z $FIELDS ]; do
+						NAME=${FIELD%=*}
+						VALUE=${FIELD#*=}
+						if [[ $NAME == 'FORMAT' ]];then
+								DEPEXT=$VALUE
+								FIELDS=""
+						else
+							I=`expr $I + 1`
+							FIELDS=`echo $FIELDS | cut -d '|' -f $I`
+						fi
+					done
+					# determining extension done
+				fi
+			fi
+			if [[ $EXTERNAL == 1 ]];then
+				echo "---> External dependency detected."
+				pushd $DEPDIR >/dev/null
+				EXTPROJECTROOT=`get_project_root`
+				RENDERPREFIX=$(pwd | sed -e "s|$EXTPROJECTROOT||")
+				REMAKEBINARY=$(relpath `pwd` $SCRIPT_PATH/remake)
+				popd >/dev/null
+				EXTRENDERPATH="$(relpath `pwd` $EXTPROJECTROOT/render${RENDERPREFIX})/$DEPFILE.$DEPEXT"
+				DEPS="$DEPS ${EXTRENDERPATH}"
+				#invoke child process as dependency
+				
+				DEPSCODE="${DEPSCODE}	cd $DEPDIR && bash -e $REMAKEBINARY $DEPFILE\n"
+				DEPSCLEANCODE="${DEPSCLEANCODE}	cd $DEPDIR && bash -e $REMAKEBINARY ${DEPFILE}.clean\n"
+			else
+				if ( cat Makefile.re | grep -E "^${DEPENDENCY}(\|.*)*:" >/dev/null ); then
+					pushd `dirname $DEPENDENCY` >/dev/null
+					RENDERPREFIX=$(pwd | sed -e "s|$PROJECTROOT||")
+					popd >/dev/null
+					DEPS="$DEPS $(relpath `pwd` $PROJECTROOT/render${RENDERPREFIX})/$DEPENDENCY"
+					#[ ! -d $DEPENDENCY ] || DEPS="$DEPS $DEPENDENCY"
+				else
+					DEPS="$DEPS $DEPENDENCY"
+				fi
+			fi
+		done
+		DEPS="$DEPS $CONFIGPATH Makefile.re"
+		
+		export WIDTH
+		export HEIGHT
+		export FORMAT
+		export FPS
+		export SINGLE
+		
+		export TARGET
+		export DEPS
+		export RENDERPATH
+		
+		if ( ( echo $TARGET | grep -E "/" >/dev/null) || [ -d $TARGET ] ); then
+			echo "WARNING: Target '$TARGET' is redundant."
+			#mod_external
+		else
+			printf "$ALIASCODE" >> Makefile
+			if [ ! -z $NORENDER ];then
+				mod_norender
+			else
+				if [ -f $SCRIPT_PATH/modules/mod_$EXT ]; then
+					bash -e $SCRIPT_PATH/modules/mod_$EXT
+				else
+					echo "WARNING: Don't know how to handle file with $EXT extension."
+					echo "         Skipping."
+				fi
+			fi
+			CLEANTARGETS="$CLEANTARGETS ${RENDERPATH}.clean"
+			# Adding implicit targets
+			if [ ! -z "$DEPSCODE" ];then
+				DEPSTARGETS="${TARGET}.deps"
+				echo "${TARGET}.deps:" >> Makefile
+				printf "${DEPSCODE}" >> Makefile
+			fi
+			if [ ! -z "$DEPSCLEANCODE" ];then
+				echo "${TARGET}.deps.clean:" >> Makefile
+				printf "${DEPSCLEANCODE}" >> Makefile
+				CLEANTARGETS="$CLEANTARGETS ${TARGET}.deps.clean"
+			fi
+		fi
+	done <  Makefile.re
+	
+	#clean action
+	echo >> Makefile
+	echo ".deps: $DEPSTARGETS" >> Makefile
+	echo ".clean: $CLEANTARGETS" >> Makefile
+	echo "	rm -rf $(relpath `pwd` $PROJECTROOT/render${RENDERPREFIX}/)" >> Makefile
+	echo ".PHONY: $CLEANTARGETS $DEPSTARGETS" >> Makefile
+	
+	#include customs
+	[ -f Makefile.in ] && cat Makefile.in >> Makefile
+fi
+
+if [ ! -z $1 ]; then
+	if [[ $1 == 'clean' ]]; then
+		ACTION='.clean'
+	else
+		if ( cat Makefile.re | grep -E "^$1(\|.*)*:" >/dev/null ); then
+			pushd `dirname $1` >/dev/null
+			RENDERPREFIX=$(pwd | sed -e "s|$PROJECTROOT||")
+			popd >/dev/null
+			FORMAT=$ARGFORMAT
+			ACTION=$(relpath `pwd` $PROJECTROOT/render${RENDERPREFIX})/$TARGET
+			[ -d $1 ] && mkdir -p $ACTION || mkdir -p `dirname $ACTION`
+		else
+			echo "No rule for '$1' found."
+			exit
+		fi
+	fi
+fi
+
+echo "Running make..."
+make ${ACTION}.deps
+make $ACTION

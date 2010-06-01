@@ -1,0 +1,41 @@
+#!/bin/bash
+
+if [[ $FORMAT == 'mpg' ]]; then
+cat >> Makefile << EOF
+$RENDERPATH.mpg: $RENDERPATH/file.lst
+	#TODO: ffmpeg stuff
+EOF
+RENDERPATH="$(basename $RENDERPATH .$FORMAT).png"
+FORMAT='png'
+fi
+
+if [ ! -z $SINGLE ]; then
+	RANGE="--time $SINGLE"
+	OUTPUT="$RENDERPATH"
+	cat >> Makefile << EOF
+$RENDERPATH: $TARGET $DEPS
+	rm -rf $RENDERPATH
+	synfig -t $FORMAT -o $OUTPUT $RANGE -w $WIDTH -h $HEIGHT $TARGET
+EOF
+else
+	OUTPUT="$RENDERPATH/file.$FORMAT"
+	cat >> Makefile << EOF
+$RENDERPATH: $RENDERPATH/file.lst
+.PHONY: $RENDERPATH
+$RENDERPATH/file.lst: $TARGET $DEPS
+	rm -rf $RENDERPATH
+	mkdir -p $RENDERPATH
+	synfig -t $FORMAT -o $OUTPUT $RANGE -w $WIDTH -h $HEIGHT $TARGET
+	echo "FPS $FPS" > $RENDERPATH/file.lst
+	( cd $RENDERPATH; ls -1 *.$FORMAT >> file.lst )
+EOF
+fi
+
+echo "	touch `dirname $RENDERPATH`/.$FORMAT" >> Makefile # This line is mandatory here
+
+echo "$RENDERPATH-clean:" >> Makefile
+echo "	rm -rf $RENDERPATH" >> Makefile
+if [[ $FORMAT == 'mpg' ]]; then
+	RENDERPATH="$(basename $RENDERPATH .$FORMAT).mpg"
+	echo "	rm -f $RENDERPATH.mpg" >> Makefile
+fi
