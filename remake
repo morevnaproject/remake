@@ -13,6 +13,21 @@ popd  > /dev/null
 #SCRIPT_PATH=$(cd `dirname $0`; pwd)
 #REPOROOT=$(dirname `git rev-parse --git-dir`)
 
+usage()
+{
+cat << EOF
+usage: $0 [options] file [action]
+
+This script generates Makefile and renders your 
+animation project taking all dependencies into 
+account.
+
+OPTIONS:
+   -h      Show this message
+   -k      Keep Makefile so you can re-invoke rendering by typing 'make'
+EOF
+}
+
 relpath(){
 	if [[ "$1" == "$2" ]]
 	then
@@ -67,10 +82,10 @@ mod_norender(){
 
 get_project_root() {
 	if [ -f ./remake.conf ]; then
-		pwd
+		pwd -P
 	else
-		if [[ `pwd` == '/' ]]; then
-			echo "ERROR: Not a 'remake' project."
+		if [[ `pwd -P` == '/' ]]; then
+			echo "   ERROR: Not a 'remake' project." 1>&2
 			exit
 		fi
 		pushd .. >/dev/null
@@ -79,202 +94,180 @@ get_project_root() {
 	fi
 }
 
+write_rules(){
+	pushd `dirname $1` >/dev/null
+	PROJECTROOT=`get_project_root`
+	RENDERPREFIX=$(pwd -P | sed -e "s|$PROJECTROOT||")
+	[ -d $PROJECTROOT/render${RENDERPREFIX} ] || mkdir -p $PROJECTROOT/render${RENDERPREFIX}
+	TARGETDIR=`pwd -P`
+	popd  >/dev/null
+	
+	CONFIGPATH=$(relpath `pwd -P` $PROJECTROOT/remake.conf)
+	
+	# Ensure that render dir ignored by git
+	[ -e $PROJECTROOT/.gitignore ] || touch $PROJECTROOT/.gitignore
+	( cat $PROJECTROOT/.gitignore | egrep "render/\*" > /dev/null ) || ( echo "render/*" >> $PROJECTROOT/.gitignore )
+
+	TARGET=$(relpath `pwd -P` $TARGETDIR)/`basename $1`
+	EXT=${TARGET##*.}
+	
+	# Re-reading config
+	. $PROJECTROOT/remake.conf
+	
+	# Looking for extra settings
+	if [ -e ${TARGET}.conf ]; then
+		. ${TARGET}.conf
+	fi
+	
+	RENDERPATH="$(relpath `pwd -P` $PROJECTROOT/render${RENDERPREFIX})/`basename $TARGET`.$FORMAT"
+	
+	export WIDTH
+	export HEIGHT
+	export FORMAT
+	export FPS
+	export SINGLE
+	
+	export TARGET
+	export RENDERPATH
+	
+	export MAKEFILE
+	
+	
+	DEPS="$CONFIGPATH"
+	PENDINGTARGETS=''
+	echo "Retrieving deps for '$TARGET'..."
+	if [ ! -f $SCRIPT_PATH/modules/mod_$EXT ]; then
+		echo "   WARNING: Don't know how to handle file with $EXT extension."
+		echo "            Skipping."
+	else
+		bash -x $SCRIPT_PATH/modules/mod_$EXT deps
+		RAWDEPS=`bash -e $SCRIPT_PATH/modules/mod_$EXT deps`
+		# Removing duplicates
+		RAWDEPS=`echo "$RAWDEPS" | sort -u`
+		# Check for new render targets
+		if [ ! -z "$RAWDEPS" ];then
+		while read LINE; do
+			if [ -d `dirname "$LINE"` ]; then
+				pushd `dirname "$LINE"` >/dev/null
+				EXTPROJECTROOT=`get_project_root`
+				popd  >/dev/null
+			else
+				EXTPROJECTROOT=""
+			fi
+			if [[ $EXTPROJECTROOT == "" ]]; then
+				# Report files outside of the repo
+				echo "   $LINE"
+				echo "   WARNING: '$LINE' is not belongs to any project."
+				echo "            Skipping."
+			else
+				pushd `dirname "$LINE"` >/dev/null
+				DEPDIR=`pwd -P`
+				popd >/dev/null
+				LINE="$(relpath `pwd -P` $DEPDIR)/`basename "$LINE"`"
+				#LINE=$(relpath `pwd` $LINE)
+				echo "   $LINE"
+				if ( echo $DEPDIR | grep -E "^${EXTPROJECTROOT}/render/" > /dev/null ); then
+					
+					#pushd `dirname $LINE` >/dev/null
+					#DEPDIR=`pwd`
+					#popd >/dev/null
+					#DEP=$(relpath `pwd` $DEPDIR)/`basename $LINE`
+					LINE=`echo "$LINE"| sed -e "s/ /\\\\ /g"`
+					DEPS='$DEPS $LINE'
+					
+					echo "   INFO: Dependency '$LINE' defines another target."
+					
+					TARGETCANDIDATE=`echo $DEPDIR/$(basename "$LINE") | sed -e "s|\.$FORMAT$||" | sed -e "s|^${EXTPROJECTROOT}/render/|${EXTPROJECTROOT}/|"`
+					if [ ! -e $TARGETCANDIDATE ]; then
+						echo "   INFO: Trying to fix '$TARGETCANDIDATE' to '`dirname $TARGETCANDIDATE`'."
+						TARGETCANDIDATE=`dirname $TARGETCANDIDATE`
+						if [ ! -e $TARGETCANDIDATE ]; then
+							echo "   ERROR: Not found!"
+						else
+							echo "         Successfull."
+						fi
+					fi
+					
+					if [ -e $TARGETCANDIDATE ]; then
+						PENDINGTARGETS="$PENDINGTARGETS $TARGETCANDIDATE"
+					fi
+				else
+					if [ ! -e "$LINE" ]; then
+						# Report non-existing files
+						echo "   WARNING: '$LINE' is not exists and not produced by any target."
+						echo "            Skipping."
+					else
+						#pushd `dirname $LINE` >/dev/null
+						#DEPDIR=`pwd`
+						#popd >/dev/null
+						#DEPS="$DEPS $(relpath `pwd` $DEPDIR)/`basename $LINE`"
+						LINE=`echo "$LINE"| sed -e "s/ /\\\\ /g"`
+						DEPS="$DEPS $LINE"
+					fi
+				fi
+			fi
+		done < <( echo "$RAWDEPS" )
+		fi
+		
+		export DEPS
+		
+		bash -e $SCRIPT_PATH/modules/mod_$EXT rules
+		
+		echo ".PHONY: $RENDERPATH-clean" >> $MAKEFILE
+		echo "clean: $RENDERPATH-clean" >> $MAKEFILE
+		
+		for TARGET in $PENDINGTARGETS;do
+			# check if rules for this target are already written
+			( cat $MAKEFILE | grep -E "^$TARGET:" >/dev/null ) || write_rules $TARGET
+		done
+	fi
+}
+
+OPT_KEEP=0
+while getopts "hk" OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         k)
+             OPT_KEEP=1
+             ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+
+shift $(($OPTIND - 1))
+
+if [ -z $1 ]; then
+	echo
+	echo "ERROR: Please specify filename to render. Aborting." >&2
+	echo
+	usage
+	exit 1
+fi
+
+pushd `dirname $1`>/dev/null
 PROJECTROOT=`get_project_root`
+popd >/dev/null
+
+[ -d ${PROJECTROOT}/render/tmp ] || mkdir -p ${PROJECTROOT}/render/tmp
+MAKEFILE=${PROJECTROOT}/render/tmp/Makefile.$$
+[ ! -e $MAKEFILE ] || rm $MAKEFILE
+touch $MAKEFILE
 
 #creating render dir
 #[ -d $REPOROOT/render ] || mkdir -p $REPOROOT/render
 
-#ensure that render dir ignored by git
-[ -e $PROJECTROOT/.gitignore ] || touch $PROJECTROOT/.gitignore
-( cat $PROJECTROOT/.gitignore | egrep "render/\*" > /dev/null ) || ( echo "render/*" >> $PROJECTROOT/.gitignore )
+write_rules $1
+echo ".PHONY: clean" >> $MAKEFILE
 
-if [ -f ./Makefile.re ]; then
-	[ ! -f Makefile ] || rm Makefile
-	touch Makefile
-	
-	while read LINE; do
-		#Re-reading config
-		. $PROJECTROOT/remake.conf
-		CONFIGPATH=$(relpath `pwd` $PROJECTROOT/remake.conf)
-		
-		TARGET=${LINE%%:*}'|'
-		OPTIONS=${TARGET#*|}
-		TARGET=${TARGET%%|*}
-		echo "-> $TARGET"
-		
-		I=1
-		FIELD=`echo $OPTIONS | cut -d '|' -f $I`
-		while ! [ -z $FIELD ]; do
-			NAME=${FIELD%=*}
-			VALUE=${FIELD#*=}
-			case $NAME in
-				'NORENDER')
-					VALUE=1
-					NORENDER=$VALUE
-					;;
-				'SINGLE')
-					SINGLE=$VALUE
-					;;
-				'WIDTH')
-					WIDTH=$VALUE
-					;;
-				'HEIGHT')
-					HEIGHT=$VALUE
-					;;
-				'FORMAT')
-					FORMAT=$VALUE
-					;;
-			esac
-			echo $NAME $VALUE
-			
-			I=`expr $I + 1`
-			FIELD=`echo $OPTIONS | cut -d '|' -f $I`
-		done
-		
-		RENDERPREFIX=$(pwd | sed -e "s|$PROJECTROOT||")
-		[ -d $PROJECTROOT/render${RENDERPREFIX} ] || mkdir -p $PROJECTROOT/render${RENDERPREFIX}
-		RENDERPATH="$(relpath `pwd` $PROJECTROOT/render${RENDERPREFIX})/$TARGET"
-		# Target alias
-		ALIASCODE="${RENDERPATH}: $RENDERPATH.${FORMAT}\n.PHONY: ${RENDERPATH}\n"
-		# Real target
-		RENDERPATH=$RENDERPATH.$FORMAT
-		EXT=${TARGET##*.}
-		
-		RAWDEPS=${LINE#*:}
-		DEPS=""
-		DEPSCODE=""
-		DEPSCLEANCODE=""
-		for DEPENDENCY in $RAWDEPS; do
-			#checking if dependency is external
-			EXTERNAL=0
-			echo "--> Checking '${DEPENDENCY}'..."
-			if ( [ -d ${DEPENDENCY} ] && [ -e ${DEPENDENCY}/Makefile.re ] ); then
-				EXTERNAL=1
-				DEPDIR=${DEPENDENCY}
-				DEPFILE=''
-				DEPEXT=$FORMAT
-			else 
-				if (( echo ${DEPENDENCY} | grep -E "/" ) && ( cat "`dirname ${DEPENDENCY}`/Makefile.re" | grep -E "^${DEPENDENCY}(\|.*)*:" >/dev/null ) ); then
-					EXTERNAL=1
-					DEPDIR=`dirname ${DEPENDENCY}`
-					DEPFILE=`basename ${DEPENDENCY}`
-					# determining extension
-					DEPEXT=$FORMAT
-					LINE=$(cat "`dirname ${DEPENDENCY}`/Makefile.re" | grep -E "^${DEPENDENCY}(\|.*)*:")
-					FIELDS=${LINE%%:*}'|'
-					FIELDS=${FIELDS#*|}
-					I=1
-					FIELDS=`echo $FIELDS | cut -d '|' -f $I`
-					while ! [ -z $FIELDS ]; do
-						NAME=${FIELD%=*}
-						VALUE=${FIELD#*=}
-						if [[ $NAME == 'FORMAT' ]];then
-								DEPEXT=$VALUE
-								FIELDS=""
-						else
-							I=`expr $I + 1`
-							FIELDS=`echo $FIELDS | cut -d '|' -f $I`
-						fi
-					done
-					# determining extension done
-				fi
-			fi
-			if [[ $EXTERNAL == 1 ]];then
-				echo "---> External dependency detected."
-				pushd $DEPDIR >/dev/null
-				EXTPROJECTROOT=`get_project_root`
-				RENDERPREFIX=$(pwd | sed -e "s|$EXTPROJECTROOT||")
-				REMAKEBINARY=$(relpath `pwd` $SCRIPT_PATH/remake)
-				popd >/dev/null
-				EXTRENDERPATH="$(relpath `pwd` $EXTPROJECTROOT/render${RENDERPREFIX})/$DEPFILE.$DEPEXT"
-				DEPS="$DEPS ${EXTRENDERPATH}"
-				#invoke child process as dependency
-				
-				DEPSCODE="${DEPSCODE}	cd $DEPDIR && bash -e $REMAKEBINARY $DEPFILE\n"
-				DEPSCLEANCODE="${DEPSCLEANCODE}	cd $DEPDIR && bash -e $REMAKEBINARY ${DEPFILE}.clean\n"
-			else
-				if ( cat Makefile.re | grep -E "^${DEPENDENCY}(\|.*)*:" >/dev/null ); then
-					pushd `dirname $DEPENDENCY` >/dev/null
-					RENDERPREFIX=$(pwd | sed -e "s|$PROJECTROOT||")
-					popd >/dev/null
-					DEPS="$DEPS $(relpath `pwd` $PROJECTROOT/render${RENDERPREFIX})/$DEPENDENCY"
-					#[ ! -d $DEPENDENCY ] || DEPS="$DEPS $DEPENDENCY"
-				else
-					DEPS="$DEPS $DEPENDENCY"
-				fi
-			fi
-		done
-		DEPS="$DEPS $CONFIGPATH Makefile.re"
-		
-		export WIDTH
-		export HEIGHT
-		export FORMAT
-		export FPS
-		export SINGLE
-		
-		export TARGET
-		export DEPS
-		export RENDERPATH
-		
-		if ( ( echo $TARGET | grep -E "/" >/dev/null) || [ -d $TARGET ] ); then
-			echo "WARNING: Target '$TARGET' is redundant."
-			#mod_external
-		else
-			printf "$ALIASCODE" >> Makefile
-			if [ ! -z $NORENDER ];then
-				mod_norender
-			else
-				if [ -f $SCRIPT_PATH/modules/mod_$EXT ]; then
-					bash -e $SCRIPT_PATH/modules/mod_$EXT
-				else
-					echo "WARNING: Don't know how to handle file with $EXT extension."
-					echo "         Skipping."
-				fi
-			fi
-			CLEANTARGETS="$CLEANTARGETS ${RENDERPATH}.clean"
-			# Adding implicit targets
-			if [ ! -z "$DEPSCODE" ];then
-				DEPSTARGETS="${TARGET}.deps"
-				echo "${TARGET}.deps:" >> Makefile
-				printf "${DEPSCODE}" >> Makefile
-			fi
-			if [ ! -z "$DEPSCLEANCODE" ];then
-				echo "${TARGET}.deps.clean:" >> Makefile
-				printf "${DEPSCLEANCODE}" >> Makefile
-				CLEANTARGETS="$CLEANTARGETS ${TARGET}.deps.clean"
-			fi
-		fi
-	done <  Makefile.re
-	
-	#clean action
-	echo >> Makefile
-	echo ".deps: $DEPSTARGETS" >> Makefile
-	echo ".clean: $CLEANTARGETS" >> Makefile
-	echo "	rm -rf $(relpath `pwd` $PROJECTROOT/render${RENDERPREFIX}/)" >> Makefile
-	echo ".PHONY: $CLEANTARGETS $DEPSTARGETS" >> Makefile
-	
-	#include customs
-	[ -f Makefile.in ] && cat Makefile.in >> Makefile
-fi
-
-if [ ! -z $1 ]; then
-	if [[ $1 == 'clean' ]]; then
-		ACTION='.clean'
-	else
-		if ( cat Makefile.re | grep -E "^$1(\|.*)*:" >/dev/null ); then
-			pushd `dirname $1` >/dev/null
-			RENDERPREFIX=$(pwd | sed -e "s|$PROJECTROOT||")
-			popd >/dev/null
-			FORMAT=$ARGFORMAT
-			ACTION=$(relpath `pwd` $PROJECTROOT/render${RENDERPREFIX})/$TARGET
-			[ -d $1 ] && mkdir -p $ACTION || mkdir -p `dirname $ACTION`
-		else
-			echo "No rule for '$1' found."
-			exit
-		fi
-	fi
-fi
+[[ $OPT_KEEP == 0 ]] || cp -f $MAKEFILE Makefile
 
 echo "Running make..."
-make ${ACTION}.deps
-make $ACTION
+make -f $MAKEFILE $2
+rm -f $MAKEFILE

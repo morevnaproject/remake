@@ -1,25 +1,55 @@
 #!/bin/bash
 
-if [[ $FORMAT == 'mpg' ]]; then
-cat >> Makefile << EOF
+deps(){
+	if [ ! -z $1 ]; then 
+		TARGET=$1
+	fi
+	if ! ( which strace > /dev/null 2>&1 ); then
+		echo "   FATAL: Can't find 'strace' binary!" >&2
+		exit 1
+	fi
+	pushd `dirname "$TARGET"`>/dev/null
+	ABSTARGET=`pwd`/`basename $TARGET`
+	popd >/dev/null
+	strace -f -eopen -o $MAKEFILE.sif synfig -t null -w 1 -h 1 -Q 10 -b $TARGET >/dev/null 2>&1
+	cat $MAKEFILE.sif | grep -E '.(jpg|png|sif|sifz|lst)", O_RDONLY' | while read LINE; do
+		LINE=`echo $LINE | sed -e 's/^[0-9]* open("//' | sed -e 's/", O_RDONLY.*) =.*$//'`
+		pushd `dirname "$LINE"`>/dev/null
+		[[ `pwd`/`basename $LINE` == $ABSTARGET ]] || echo $LINE
+		popd >/dev/null
+	done
+	rm -f $MAKEFILE.sif
+}
+
+rules(){
+	if [[ $FORMAT == 'mpg' ]]; then
+		if ! ( which ffmpeg > /dev/null 2>&1 ); then
+			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+			exit 1
+		fi
+		cat >> $MAKEFILE << EOF
 $RENDERPATH.mpg: $RENDERPATH/file.lst
 	#TODO: ffmpeg stuff
 EOF
-RENDERPATH="$(basename $RENDERPATH .$FORMAT).png"
-FORMAT='png'
-fi
+	RENDERPATH="$(basename $RENDERPATH .$FORMAT).png"
+	FORMAT='png'
+	fi
+	
+	# Get image dimensions from file if it's unspecified
+	[ -z $WIDTH ] && OPTWIDTH="" || OPTWIDTH="-w $WIDTH"
+	[ -z $HEIGHT ] && OPTHEIGHT="" || OPTHEIGHT="-h $HEIGHT"
 
-if [ ! -z $SINGLE ]; then
-	RANGE="--time $SINGLE"
-	OUTPUT="$RENDERPATH"
-	cat >> Makefile << EOF
+	if [ ! -z $SINGLE ]; then
+		RANGE="--time ${SINGLE}f"
+		OUTPUT="$RENDERPATH"
+		cat >> $MAKEFILE << EOF
 $RENDERPATH: $TARGET $DEPS
 	rm -rf $RENDERPATH
-	synfig -t $FORMAT -o $OUTPUT $RANGE -w $WIDTH -h $HEIGHT $TARGET
+	synfig -t $FORMAT -o $OUTPUT $RANGE $OPTWIDTH $OPTHEIGHT $TARGET
 EOF
-else
-	OUTPUT="$RENDERPATH/file.$FORMAT"
-	cat >> Makefile << EOF
+	else
+		OUTPUT="$RENDERPATH/file.$FORMAT"
+		cat >> $MAKEFILE << EOF
 $RENDERPATH: $RENDERPATH/file.lst
 .PHONY: $RENDERPATH
 $RENDERPATH/file.lst: $TARGET $DEPS
@@ -29,13 +59,19 @@ $RENDERPATH/file.lst: $TARGET $DEPS
 	echo "FPS $FPS" > $RENDERPATH/file.lst
 	( cd $RENDERPATH; ls -1 *.$FORMAT >> file.lst )
 EOF
+	fi
+
+	echo "$RENDERPATH-clean:" >> $MAKEFILE
+	echo "	rm -rf $RENDERPATH" >> $MAKEFILE
+	if [[ $FORMAT == 'mpg' ]]; then
+		RENDERPATH="$(basename $RENDERPATH .$FORMAT).mpg"
+		echo "	rm -f $RENDERPATH.mpg" >> $MAKEFILE
+	fi
+}
+
+if ! ( which synfig > /dev/null 2>&1 ); then
+	echo "   FATAL: Can't find 'synfig' binary!" >&2
+	exit 1
 fi
 
-echo "	touch `dirname $RENDERPATH`/.$FORMAT" >> Makefile # This line is mandatory here
-
-echo "$RENDERPATH-clean:" >> Makefile
-echo "	rm -rf $RENDERPATH" >> Makefile
-if [[ $FORMAT == 'mpg' ]]; then
-	RENDERPATH="$(basename $RENDERPATH .$FORMAT).mpg"
-	echo "	rm -f $RENDERPATH.mpg" >> Makefile
-fi
+$1 $2

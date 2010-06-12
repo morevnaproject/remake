@@ -1,19 +1,24 @@
 #!/bin/bash
 
-if [[ $FORMAT == 'mpg' ]]; then
-cat >> Makefile << EOF
-$RENDERPATH: $RENDERPATH/file.lst
-	#TODO: ffmpeg stuff
-EOF
-RENDERPATH="$(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').png"
-FORMAT='png'
-fi
+deps(){
+	if [ ! -z $1 ]; then 
+		TARGET=$1
+	fi
+	pushd `dirname $TARGET` > /dev/null
+	
+	SCRIPTPATH=$(cd `dirname $0`; pwd)/mod_blend_deps.py
+	blender -b `basename $TARGET` -P $SCRIPTPATH 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
+		echo $LINE
+		if ( echo $LINE | grep -E '.blend$' >/dev/null); then
+			deps $LINE
+		fi
+	done
+	popd >/dev/null
+}
 
-BLENDERFORMAT=`echo $FORMAT | tr '[:lower:]' '[:upper:]'`
-RENDERSCRIPT="$(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').py"
-
-[ ! -f $RENDERSCRIPT ] || rm -rf $RENDERSCRIPT
-cat >> $RENDERSCRIPT << EOF
+renderscript(){
+	[ ! -d `dirname $RENDERSCRIPT` ] || mkdir -p `dirname $RENDERSCRIPT`
+	cat > $RENDERSCRIPT << EOF
 from Blender import Scene, Object
 import sys
 
@@ -24,7 +29,7 @@ def main():
 		rend.saveBuffers = True
 		rend.compositeFree = True
 		
-		rend.oversampling = True
+		rend.oversampling = $OSA
 		
 		rend.OSALevel = 8
 		
@@ -42,9 +47,14 @@ def main():
 	#rend.enablePremultiply()
 	
 	rend.enableRGBAColor()
+EOF
+	# Get image dimensions from file if it's unspecified
 	
-	rend.sizeX = $WIDTH
-	rend.sizeY = $HEIGHT
+	
+	[ -z $WIDTH ] || echo "	rend.sizeX = $WIDTH" >> $RENDERSCRIPT
+	[ -z $HEIGHT ] || echo "	rend.sizeY = $HEIGHT" >> $RENDERSCRIPT
+	
+	cat >> $RENDERSCRIPT << EOF
 	
 	rend.xParts = 4
 	rend.yParts = 4
@@ -64,32 +74,59 @@ def main():
 if __name__ == '__main__':
 	main()
 EOF
+}
 
-if [ ! -z $SINGLE ]; then
-	RANGE="-f $SINGLE"
-	OUTPUT="\`pwd\`/${RENDERPATH}-######"
-	echo "$RENDERPATH: $TARGET $DEPS" >> Makefile
-	echo "	rm -rf $RENDERPATH" >> Makefile
-	echo "	blender -b $TARGET -S Scene -P \`pwd\`/$RENDERSCRIPT -o $OUTPUT -x 0 -F $BLENDERFORMAT -t 0 $RANGE" >> Makefile
-	echo "	mv ${RENDERPATH}-`printf %06d $SINGLE` $RENDERPATH" >> Makefile
-else
-	RANGE="-a"
-	OUTPUT="\`pwd\`/$RENDERPATH/file"
-	echo "$RENDERPATH: $RENDERPATH/file.lst" >> Makefile
-	echo ".PHONY: $RENDERPATH" >> Makefile
-	echo "$RENDERPATH/file.lst: $TARGET $DEPS" >> Makefile
-	echo "	rm -rf $RENDERPATH" >> Makefile
-	echo "	mkdir -p $RENDERPATH" >> Makefile
-	echo "	blender -b $TARGET -S Scene -P \`pwd\`/$RENDERSCRIPT -o $OUTPUT -x 1 -F $BLENDERFORMAT -t 0 $RANGE" >> Makefile
-	echo "	echo "FPS $FPS" > $RENDERPATH/file.lst" >> Makefile
-	echo "	( cd $RENDERPATH; ls -1 *.$FORMAT >> file.lst )" >> Makefile
+rules(){
+	if [[ $FORMAT == 'mpg' ]]; then
+		if ! ( which ffmpeg > /dev/null 2>&1 ); then
+			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+			exit 1
+		fi
+		cat >> $MAKEFILE << EOF
+$RENDERPATH: $RENDERPATH/file.lst
+	#TODO: ffmpeg stuff
+EOF
+		RENDERPATH="$(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').png"
+		FORMAT='png'
+	fi
+	
+	OSA="True"
+	BLENDERFORMAT=`echo $FORMAT | tr '[:lower:]' '[:upper:]'`
+	RENDERSCRIPT="$(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').py"
+
+	renderscript
+
+	if [ ! -z $SINGLE ]; then
+		RANGE="-f $SINGLE"
+		OUTPUT="\`pwd\`/${RENDERPATH}-######"
+		echo "$RENDERPATH: $TARGET $DEPS" >> $MAKEFILE
+		echo "	rm -rf $RENDERPATH" >> $MAKEFILE
+		echo "	blender -b $TARGET -S Scene -P \`pwd\`/$RENDERSCRIPT -o $OUTPUT -x 0 -F $BLENDERFORMAT -t 0 $RANGE" >> $MAKEFILE
+		echo "	mv ${RENDERPATH}-`printf %06d $SINGLE` $RENDERPATH" >> $MAKEFILE
+	else
+		RANGE="-a"
+		OUTPUT="\`pwd\`/$RENDERPATH/file"
+		echo "$RENDERPATH: $RENDERPATH/file.lst" >> $MAKEFILE
+		echo ".PHONY: $RENDERPATH" >> $MAKEFILE
+		echo "$RENDERPATH/file.lst: $TARGET $DEPS" >> $MAKEFILE
+		echo "	rm -rf $RENDERPATH" >> $MAKEFILE
+		echo "	mkdir -p $RENDERPATH" >> $MAKEFILE
+		echo "	blender -b $TARGET -S Scene -P \`pwd\`/$RENDERSCRIPT -o $OUTPUT -x 1 -F $BLENDERFORMAT -t 0 $RANGE | grep -E '^Saved: '" >> $MAKEFILE
+		echo "	echo "FPS $FPS" > $RENDERPATH/file.lst" >> $MAKEFILE
+		echo "	( cd $RENDERPATH; ls -1 *.$FORMAT >> file.lst )" >> $MAKEFILE
+	fi
+
+	echo "$RENDERPATH-clean:" >> $MAKEFILE
+	if [[ $FORMAT == 'mpg' ]]; then
+		echo "	rm -f $(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').mpg" >> $MAKEFILE
+	fi
+	echo "	rm -rf $RENDERPATH" >> $MAKEFILE
+	echo "	rm -rf $RENDERSCRIPT" >> $MAKEFILE
+}
+
+if ! ( which blender > /dev/null 2>&1 ); then
+	echo "   FATAL: Can't find 'blender' binary!" >&2
+	exit 1
 fi
 
-echo "	touch `dirname $RENDERPATH`/.$FORMAT" >> Makefile # This line is mandatory here
-
-echo "$RENDERPATH-clean:" >> Makefile
-if [[ $FORMAT == 'mpg' ]]; then
-	echo "	rm -f $(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').mpg" >> Makefile
-fi
-echo "	rm -rf $RENDERPATH" >> Makefile
-echo "	rm -rf $RENDERSCRIPT" >> Makefile
+$1 $2
