@@ -1,24 +1,51 @@
 #!/bin/bash
 
+abspath(){
+	readlink -m "$1"
+}
+
+parse(){
+	pushd `dirname "$1"` >/dev/null
+	DEPS=$(cat "`basename \"$1\"`" | sed -E -n '1h;1!H;${;g;s/<param name="filename">\n\s*<string>/<filename>/g;p;}' | egrep "<param name=\"canvas\" use=\".*#.*\"\/>|<filename")
+	DEPS=$(echo -e "$DEPS" | sed -e "s/.*<filename>\(.*\)<\/string>.*/\1/" -e "s/.*<param name=\"canvas\" use=\"\(.*\)#.*\"\/>.*/\1/p")
+	if [ ! -z "$DEPS" ]; then
+		while read LINE; do
+			LINE=$(abspath "`pwd -P`/$LINE")
+			#if ( echo "$LINE" | grep -E "\.sif(|z)$" ); then
+			if ! ( echo $ALLDEPS | grep -E "^$LINE$" ); then
+				echo "$LINE"
+			fi
+		done < <( echo "$DEPS" )
+	fi
+	popd > /dev/null
+}
+
+get_unparsed(){
+	echo "$ALLDEPS" | grep -E "\.sif(|z)$" | while read LINE; do
+		if ! ( echo "$SIFS" | grep -E "^$LINE$" >/dev/null ); then
+			echo "$LINE"
+			exit
+		fi
+	done
+}
+
 deps(){
 	if [ ! -z $1 ]; then 
 		TARGET=$1
 	fi
-	if ! ( which strace > /dev/null 2>&1 ); then
-		echo "   FATAL: Can't find 'strace' binary!" >&2
-		exit 1
-	fi
-	pushd `dirname "$TARGET"`>/dev/null
-	ABSTARGET=`pwd`/`basename $TARGET`
-	popd >/dev/null
-	strace -f -eopen -o $MAKEFILE.sif synfig -t null -w 1 -h 1 -Q 10 -b $TARGET >/dev/null 2>&1
-	cat $MAKEFILE.sif | grep -E '.(jpg|png|sif|sifz|lst)", O_RDONLY' | while read LINE; do
-		LINE=`echo $LINE | sed -e 's/^[0-9]* open("//' | sed -e 's/", O_RDONLY.*) =.*$//'`
-		pushd `dirname "$LINE"`>/dev/null
-		[[ `pwd`/`basename $LINE` == $ABSTARGET ]] || echo $LINE
-		popd >/dev/null
+	
+	SIFS=""
+	ALLDEPS=''
+	
+	while [ ! -z "$TARGET" ];do
+		#echo "parsing `abspath "$TARGET"`..."
+		SIFS=$(echo -e "$SIFS\n"`abspath "$TARGET"`)
+		DEPS=`parse "$TARGET"`
+		ALLDEPS=`echo -e "$ALLDEPS\n$DEPS"`
+		TARGET=`get_unparsed`
 	done
-	rm -f $MAKEFILE.sif
+	
+	echo "$ALLDEPS" | sed '/^$/d'
 }
 
 rules(){
