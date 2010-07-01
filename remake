@@ -7,11 +7,16 @@ if([ -h "${SCRIPT_PATH}" ]) then
   while([ -h "${SCRIPT_PATH}" ]) do SCRIPT_PATH=`readlink "${SCRIPT_PATH}"`; done
 fi
 pushd . > /dev/null
-cd `dirname ${SCRIPT_PATH}` > /dev/null
+cd `dirname "${SCRIPT_PATH}"` > /dev/null
 SCRIPT_PATH=`pwd`;
 popd  > /dev/null
 #SCRIPT_PATH=$(cd `dirname $0`; pwd)
 #REPOROOT=$(dirname `git rev-parse --git-dir`)
+
+escape()
+{
+echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
 
 usage()
 {
@@ -72,19 +77,11 @@ relpath(){
 	echo "$newpath"
 }
 
-mod_norender(){
-	echo "${RENDERPATH}: $TARGET $DEPS" >> Makefile
-	echo "	touch $RENDERPATH" >> Makefile
-	echo "	touch `dirname $RENDERPATH`/.$FORMAT" >> Makefile # This line is mandatory here
-	echo "${RENDERPATH}.clean:" >> Makefile
-	echo "	rm -rf ${RENDERPATH}" >> Makefile
-}
-
 get_project_root() {
 	if [ -f ./remake.conf ]; then
 		pwd -P
 	else
-		if [[ `pwd -P` == '/' ]]; then
+		if [[ "`pwd -P`" == '/' ]]; then
 			echo "   ERROR: Not a 'remake' project." 1>&2
 			exit
 		fi
@@ -95,31 +92,53 @@ get_project_root() {
 }
 
 write_rules(){
-	pushd `dirname $1` >/dev/null
+	
+	pushd "`dirname "$1"`" >/dev/null
 	PROJECTROOT=`get_project_root`
 	RENDERPREFIX=$(pwd -P | sed -e "s|$PROJECTROOT||")
-	[ -d $PROJECTROOT/render${RENDERPREFIX} ] || mkdir -p $PROJECTROOT/render${RENDERPREFIX}
+	[ -d "$PROJECTROOT/render${RENDERPREFIX}" ] || mkdir -p "$PROJECTROOT/render${RENDERPREFIX}"
 	TARGETDIR=`pwd -P`
 	popd  >/dev/null
 	
-	CONFIGPATH=$(relpath `pwd -P` $PROJECTROOT/remake.conf)
+	CONFIGPATH=$(relpath "`pwd -P`" "$PROJECTROOT/remake.conf")
 	
 	# Ensure that render dir ignored by git
-	[ -e $PROJECTROOT/.gitignore ] || touch $PROJECTROOT/.gitignore
-	( cat $PROJECTROOT/.gitignore | egrep "render/\*" > /dev/null ) || ( echo "render/*" >> $PROJECTROOT/.gitignore )
-
-	TARGET=$(relpath `pwd -P` $TARGETDIR)/`basename $1`
+	[ -e "$PROJECTROOT/.gitignore" ] || touch "$PROJECTROOT/.gitignore"
+	( cat "$PROJECTROOT/.gitignore" | egrep "render/\*" > /dev/null ) || ( echo "render/*" >> "$PROJECTROOT/.gitignore" )
+	
+	TARGET=$(relpath "`pwd -P`" "$TARGETDIR")/`basename "$1"`
 	EXT=${TARGET##*.}
 	
 	# Re-reading config
-	. $PROJECTROOT/remake.conf
+	. "$PROJECTROOT/remake.conf"
 	
-	# Looking for extra settings
-	if [ -e ${TARGET}.conf ]; then
-		. ${TARGET}.conf
+	DEPS=`escape "$CONFIGPATH"`
+	SINGLE=''
+	
+	export FORMAT
+	
+	# allow module to override format
+	if [ -f "$SCRIPT_PATH/modules/mod_$EXT" ]; then
+		FORMAT=`bash -e "$SCRIPT_PATH/modules/mod_$EXT" format`
 	fi
 	
-	RENDERPATH="$(relpath `pwd -P` $PROJECTROOT/render${RENDERPREFIX})/`basename $TARGET`.$FORMAT"
+	# Looking for extra settings
+	if [ -e "${TARGET}.conf" ]; then
+		. "${TARGET}.conf"
+		DEPS="$DEPS `escape "${TARGET}.conf"`"
+	fi
+	
+	RENDERPATH=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`.$FORMAT
+	
+	# check if rules for this target are already written
+	#echo $RENDERPATH
+	
+	#RENDERPATH=`echo "$RENDERPATH"| sed -e "s/ /\\\\\\\\ /g"`
+	
+	if ! ( cat "$MAKEFILE" | grep -E "^$RENDERPATH:" >/dev/null ); then
+	
+	echo "Retrieving deps for '$TARGET'..."
+	#TARGET=`echo "$TARGET"| sed -e "s/ /\\\\\\\\ /g"`
 	
 	export WIDTH
 	export HEIGHT
@@ -133,22 +152,26 @@ write_rules(){
 	export MAKEFILE
 	
 	
-	DEPS="$CONFIGPATH"
 	PENDINGTARGETS=''
-	echo "Retrieving deps for '$TARGET'..."
-	if [ ! -f $SCRIPT_PATH/modules/mod_$EXT ]; then
+	if [ ! -f "$SCRIPT_PATH/modules/mod_$EXT" ]; then
 		echo "   WARNING: Don't know how to handle file with $EXT extension."
 		echo "            Skipping."
 	else
-		bash -x $SCRIPT_PATH/modules/mod_$EXT deps
-		RAWDEPS=`bash -e $SCRIPT_PATH/modules/mod_$EXT deps`
+		#bash -x $SCRIPT_PATH/modules/mod_$EXT deps
+		RAWDEPS=`bash -e "$SCRIPT_PATH/modules/mod_$EXT" deps`
 		# Removing duplicates
 		RAWDEPS=`echo "$RAWDEPS" | sort -u`
 		# Check for new render targets
 		if [ ! -z "$RAWDEPS" ];then
 		while read LINE; do
-			if [ -d `dirname "$LINE"` ]; then
-				pushd `dirname "$LINE"` >/dev/null
+			DIR=`dirname "$LINE"`
+			if [ ! -e "$DIR" ]; then
+				# go one level down, because render result could be a 
+				# sequence in dir which is not exists
+				DIR=`dirname "$DIR"`
+			fi
+			if [ -d "$DIR" ]; then
+				pushd "$DIR" >/dev/null
 				EXTPROJECTROOT=`get_project_root`
 				popd  >/dev/null
 			else
@@ -160,10 +183,11 @@ write_rules(){
 				echo "   WARNING: '$LINE' is not belongs to any project."
 				echo "            Skipping."
 			else
-				pushd `dirname "$LINE"` >/dev/null
+				[ -e "`dirname "$LINE"`" ] || mkdir -p "`dirname "$LINE"`"
+				pushd "`dirname "$LINE"`" >/dev/null
 				DEPDIR=`pwd -P`
 				popd >/dev/null
-				LINE="$(relpath `pwd -P` $DEPDIR)/`basename "$LINE"`"
+				LINE="$(relpath "`pwd -P`" "$DEPDIR")/`basename "$LINE"`"
 				#LINE=$(relpath `pwd` $LINE)
 				echo "   $LINE"
 				if ( echo $DEPDIR | grep -E "^${EXTPROJECTROOT}/render/" > /dev/null ); then
@@ -172,24 +196,34 @@ write_rules(){
 					#DEPDIR=`pwd`
 					#popd >/dev/null
 					#DEP=$(relpath `pwd` $DEPDIR)/`basename $LINE`
-					LINE=`echo "$LINE"| sed -e "s/ /\\\\ /g"`
-					DEPS='$DEPS $LINE'
-					
+					#LINE=`echo "$LINE"| sed -e "s/ /\\\\\\\\ /g"`
+					#LINE=`echo "$LINE"| sed -e "s/\\\\\\ / /g"`
 					echo "   INFO: Dependency '$LINE' defines another target."
 					
-					TARGETCANDIDATE=`echo $DEPDIR/$(basename "$LINE") | sed -e "s|\.$FORMAT$||" | sed -e "s|^${EXTPROJECTROOT}/render/|${EXTPROJECTROOT}/|"`
-					if [ ! -e $TARGETCANDIDATE ]; then
-						echo "   INFO: Trying to fix '$TARGETCANDIDATE' to '`dirname $TARGETCANDIDATE`'."
-						TARGETCANDIDATE=`dirname $TARGETCANDIDATE`
-						if [ ! -e $TARGETCANDIDATE ]; then
-							echo "   ERROR: Not found!"
+					TARGETCANDIDATE=`echo $DEPDIR/$(basename "${LINE%.*}") | sed -e "s|^${EXTPROJECTROOT}/render/|${EXTPROJECTROOT}/|" `
+					if [ ! -e "$TARGETCANDIDATE" ]; then
+						TMP=$TARGETCANDIDATE
+						TARGETCANDIDATE=`dirname "${TARGETCANDIDATE}"`
+						TARGETCANDIDATE=${TARGETCANDIDATE%.*}
+						echo "   INFO: Trying to fix '$TMP' to '$TARGETCANDIDATE'."
+						
+						if [ -d "$TARGETCANDIDATE" ]; then
+							echo "         ERROR: Can't define target from directory."
 						else
-							echo "         Successfull."
+							if [ ! -e "$TARGETCANDIDATE" ]; then
+								echo "   ERROR: Not found!"
+							else
+								echo "         Successfull."
+								LINE=`dirname "$LINE"`
+							fi
 						fi
 					fi
 					
-					if [ -e $TARGETCANDIDATE ]; then
-						PENDINGTARGETS="$PENDINGTARGETS $TARGETCANDIDATE"
+					DEPS="$DEPS `escape "$LINE"`"
+					
+					if [ -e "$TARGETCANDIDATE" ] && [ ! -d "$TARGETCANDIDATE" ]; then
+						#TARGETCANDIDATE=`echo "$TARGETCANDIDATE"| sed -e 's/ /\\\\\\\\ /g'`
+						PENDINGTARGETS=$(echo -e "$PENDINGTARGETS\n$TARGETCANDIDATE")
 					fi
 				else
 					if [ ! -e "$LINE" ]; then
@@ -201,8 +235,8 @@ write_rules(){
 						#DEPDIR=`pwd`
 						#popd >/dev/null
 						#DEPS="$DEPS $(relpath `pwd` $DEPDIR)/`basename $LINE`"
-						LINE=`echo "$LINE"| sed -e "s/ /\\\\ /g"`
-						DEPS="$DEPS $LINE"
+						#LINE=`echo "$LINE"| sed -e "s/ /\\\\\\ /g"`
+						DEPS="$DEPS `escape "$LINE"`"
 					fi
 				fi
 			fi
@@ -211,15 +245,25 @@ write_rules(){
 		
 		export DEPS
 		
-		bash -e $SCRIPT_PATH/modules/mod_$EXT rules
+		# Allow to override rules per file
+		if [ -e "${TARGET}.make" ]; then
+			echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+			echo "	cd `dirname "$RENDERPATH"` && make -f `basename \"${TARGET}.make\"`" >> "$MAKEFILE"
+			echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
+			echo "	cd `dirname "$RENDERPATH"` && make -f `basename \"${TARGET}.make\"` clean" >> "$MAKEFILE"
+		else
+			bash -e "$SCRIPT_PATH/modules/mod_$EXT" rules
+		fi
 		
-		echo ".PHONY: $RENDERPATH-clean" >> $MAKEFILE
-		echo "clean: $RENDERPATH-clean" >> $MAKEFILE
+		echo ".PHONY: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
+		echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		
-		for TARGET in $PENDINGTARGETS;do
-			# check if rules for this target are already written
-			( cat $MAKEFILE | grep -E "^$TARGET:" >/dev/null ) || write_rules $TARGET
-		done
+		while read TARGET; do
+			if [ ! -z "$TARGET" ];then
+				write_rules "$TARGET"
+			fi
+		done < <( echo "$PENDINGTARGETS" )
+	fi
 	fi
 }
 
@@ -243,7 +287,7 @@ done
 
 shift $(($OPTIND - 1))
 
-if [ -z $1 ]; then
+if [ -z "$1" ]; then
 	echo
 	echo "ERROR: Please specify filename to render. Aborting." >&2
 	echo
@@ -251,23 +295,30 @@ if [ -z $1 ]; then
 	exit 1
 fi
 
-pushd `dirname $1`>/dev/null
+if [ ! -f "$1" ]; then
+	echo
+	echo "ERROR: No such file. Aborting." >&2
+	echo
+	exit 1
+fi
+
+pushd "`dirname "$1"`">/dev/null
 PROJECTROOT=`get_project_root`
 popd >/dev/null
 
-[ -d ${PROJECTROOT}/render/tmp ] || mkdir -p ${PROJECTROOT}/render/tmp
+[ -d "${PROJECTROOT}/render/tmp" ] || mkdir -p "${PROJECTROOT}/render/tmp"
 MAKEFILE=${PROJECTROOT}/render/tmp/Makefile.$$
-[ ! -e $MAKEFILE ] || rm $MAKEFILE
-touch $MAKEFILE
+[ ! -e "$MAKEFILE" ] || rm "$MAKEFILE"
+touch "$MAKEFILE"
 
 #creating render dir
 #[ -d $REPOROOT/render ] || mkdir -p $REPOROOT/render
 
-write_rules $1
-echo ".PHONY: clean" >> $MAKEFILE
+write_rules "$1"
+echo ".PHONY: clean" >> "$MAKEFILE"
 
-[[ $OPT_KEEP == 0 ]] || cp -f $MAKEFILE Makefile
+[[ $OPT_KEEP == 0 ]] || cp -f "$MAKEFILE" Makefile
 
 echo "Running make..."
-make -f $MAKEFILE $2
-rm -f $MAKEFILE
+make -f "$MAKEFILE" $2
+rm -f "$MAKEFILE"

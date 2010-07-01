@@ -1,24 +1,35 @@
 #!/bin/bash
 
+escape()
+{
+echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
+
+format(){
+	echo $FORMAT
+}
+
 deps(){
-	if [ ! -z $1 ]; then 
+	if [ ! -z "$1" ]; then 
 		TARGET=$1
 	fi
-	pushd `dirname $TARGET` > /dev/null
 	
-	SCRIPTPATH=$(cd `dirname $0`; pwd)/mod_blend_deps.py
-	blender -b `basename $TARGET` -P $SCRIPTPATH 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
+	SCRIPTPATH=$(cd "`dirname "$0"`"; pwd)/mod_blend_deps.py
+	
+	pushd "`dirname "$TARGET"`" > /dev/null
+	
+	blender -b "`basename \"$TARGET\"`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
 		echo $LINE
 		if ( echo $LINE | grep -E '.blend$' >/dev/null); then
-			deps $LINE
+			deps "$LINE"
 		fi
 	done
 	popd >/dev/null
 }
 
 renderscript(){
-	[ ! -d `dirname $RENDERSCRIPT` ] || mkdir -p `dirname $RENDERSCRIPT`
-	cat > $RENDERSCRIPT << EOF
+	[ ! -d "`dirname "$RENDERSCRIPT"`" ] || mkdir -p "`dirname "$RENDERSCRIPT"`"
+	cat > "$RENDERSCRIPT" << EOF
 from Blender import Scene, Object
 import sys
 
@@ -51,10 +62,10 @@ EOF
 	# Get image dimensions from file if it's unspecified
 	
 	
-	[ -z $WIDTH ] || echo "	rend.sizeX = $WIDTH" >> $RENDERSCRIPT
-	[ -z $HEIGHT ] || echo "	rend.sizeY = $HEIGHT" >> $RENDERSCRIPT
+	[ -z $WIDTH ] || echo "	rend.sizeX = $WIDTH" >> "$RENDERSCRIPT"
+	[ -z $HEIGHT ] || echo "	rend.sizeY = $HEIGHT" >> "$RENDERSCRIPT"
 	
-	cat >> $RENDERSCRIPT << EOF
+	cat >> "$RENDERSCRIPT" << EOF
 	
 	rend.xParts = 4
 	rend.yParts = 4
@@ -69,7 +80,7 @@ EOF
 	rend.touch = False
 	rend.noOverwrite = False
 	
-	rend.imageType = Scene.Render.$BLENDERFORMAT
+	# rend.imageType = Scene.Render.$BLENDERFORMAT
 
 if __name__ == '__main__':
 	main()
@@ -77,51 +88,49 @@ EOF
 }
 
 rules(){
-	if [[ $FORMAT == 'mpg' ]]; then
-		if ! ( which ffmpeg > /dev/null 2>&1 ); then
-			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
-			exit 1
-		fi
-		cat >> $MAKEFILE << EOF
-$RENDERPATH: $RENDERPATH/file.lst
-	#TODO: ffmpeg stuff
-EOF
-		RENDERPATH="$(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').png"
-		FORMAT='png'
+	OSA="True"
+	
+	BLENDERFORMAT=`echo $FORMAT | tr '[:lower:]' '[:upper:]'`
+	if [[ $BLENDERFORMAT == 'MPG' ]]; then
+		BLENDERFORMAT="MPEG"
 	fi
 	
-	OSA="True"
-	BLENDERFORMAT=`echo $FORMAT | tr '[:lower:]' '[:upper:]'`
-	RENDERSCRIPT="$(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').py"
-
+	RENDERSCRIPT="$(echo "$RENDERPATH" | sed -e 's|\.$FORMAT$||').py"
 	renderscript
 
 	if [ ! -z $SINGLE ]; then
 		RANGE="-f $SINGLE"
 		OUTPUT="\`pwd\`/${RENDERPATH}-######"
-		echo "$RENDERPATH: $TARGET $DEPS" >> $MAKEFILE
-		echo "	rm -rf $RENDERPATH" >> $MAKEFILE
-		echo "	blender -b $TARGET -S Scene -P \`pwd\`/$RENDERSCRIPT -o $OUTPUT -x 0 -F $BLENDERFORMAT -t 0 $RANGE" >> $MAKEFILE
-		echo "	mv ${RENDERPATH}-`printf %06d $SINGLE` $RENDERPATH" >> $MAKEFILE
+		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "	blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 0 -F $BLENDERFORMAT -t 0 $RANGE | grep -E '^Saved: '" >> "$MAKEFILE"
+		echo "	mv \"${RENDERPATH}-`printf %06d $SINGLE`\" \"$RENDERPATH\"" >> "$MAKEFILE"
 	else
 		RANGE="-a"
-		OUTPUT="\`pwd\`/$RENDERPATH/file"
-		echo "$RENDERPATH: $RENDERPATH/file.lst" >> $MAKEFILE
-		echo ".PHONY: $RENDERPATH" >> $MAKEFILE
-		echo "$RENDERPATH/file.lst: $TARGET $DEPS" >> $MAKEFILE
-		echo "	rm -rf $RENDERPATH" >> $MAKEFILE
-		echo "	mkdir -p $RENDERPATH" >> $MAKEFILE
-		echo "	blender -b $TARGET -S Scene -P \`pwd\`/$RENDERSCRIPT -o $OUTPUT -x 1 -F $BLENDERFORMAT -t 0 $RANGE | grep -E '^Saved: '" >> $MAKEFILE
-		echo "	echo "FPS $FPS" > $RENDERPATH/file.lst" >> $MAKEFILE
-		echo "	( cd $RENDERPATH; ls -1 *.$FORMAT >> file.lst )" >> $MAKEFILE
+		if [[ $BLENDERFORMAT == 'PNG' ]]; then
+			OUTPUT="\`pwd\`/$RENDERPATH/file"
+			echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH/file.lst"`" >> "$MAKEFILE"
+			echo ".PHONY: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+			echo "`escape "$RENDERPATH/file.lst"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		fi
+		if [[ $BLENDERFORMAT == 'MPEG' ]]; then
+			OUTPUT="\`pwd\`/$RENDERPATH"
+			echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		fi
+		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+		if [[ $BLENDERFORMAT == 'PNG' ]]; then
+			echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
+		fi
+		echo "	-blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 1 -F $BLENDERFORMAT -t 0 $RANGE | grep -E '^Saved: '" >> "$MAKEFILE"
+		if [[ $BLENDERFORMAT == 'PNG' ]]; then
+			echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
+			echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
+		fi
 	fi
 
-	echo "$RENDERPATH-clean:" >> $MAKEFILE
-	if [[ $FORMAT == 'mpg' ]]; then
-		echo "	rm -f $(echo $RENDERPATH | sed -e 's|\.$FORMAT$||').mpg" >> $MAKEFILE
-	fi
-	echo "	rm -rf $RENDERPATH" >> $MAKEFILE
-	echo "	rm -rf $RENDERSCRIPT" >> $MAKEFILE
+	echo "`escape "$RENDERPATH-clean:"`" >> "$MAKEFILE"
+	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+	echo "	rm -rf \"$RENDERSCRIPT\"" >> "$MAKEFILE"
 }
 
 if ! ( which blender > /dev/null 2>&1 ); then
@@ -129,4 +138,4 @@ if ! ( which blender > /dev/null 2>&1 ); then
 	exit 1
 fi
 
-$1 $2
+$1 "$2"

@@ -1,13 +1,30 @@
 #!/bin/bash
 
+escape()
+{
+echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
+
+format(){
+	echo $FORMAT
+}
+
 abspath(){
 	readlink -m "$1"
 }
 
 parse(){
-	pushd `dirname "$1"` >/dev/null
-	DEPS=$(cat "`basename \"$1\"`" | sed -E -n '1h;1!H;${;g;s/<param name="filename">\n\s*<string>/<filename>/g;p;}' | egrep "<param name=\"canvas\" use=\".*#.*\"\/>|<filename")
-	DEPS=$(echo -e "$DEPS" | sed -e "s/.*<filename>\(.*\)<\/string>.*/\1/" -e "s/.*<param name=\"canvas\" use=\"\(.*\)#.*\"\/>.*/\1/p")
+	pushd "`dirname "$1"`" >/dev/null
+	DEPS=$(cat "`basename \"$1\"`" | awk 'BEGIN {x=0}{y=0}
+{
+if ($0~"<param name=\"filename\">") {x=1}
+if (x==1) {
+	if ($0~"<string.*>.*</string>") {print $0}
+}
+if ($0~"</param>") {x=0}
+if ($0~"<param name=\"canvas\" use=\".*#.*\"/>") {print $0}
+}')
+	DEPS=$(echo -e "$DEPS" | sed -e "s/.*<string.*>\(.*\)<\/string>.*/\1/" -e "s/.*<param name=\"canvas\" use=\"\(.*\)#.*\"\/>.*/\1/p")
 	if [ ! -z "$DEPS" ]; then
 		while read LINE; do
 			LINE=$(abspath "`pwd -P`/$LINE")
@@ -38,7 +55,7 @@ deps(){
 	ALLDEPS=''
 	
 	while [ ! -z "$TARGET" ];do
-		#echo "parsing `abspath "$TARGET"`..."
+		#echo "parsing `abspath $TARGET`..."
 		SIFS=$(echo -e "$SIFS\n"`abspath "$TARGET"`)
 		DEPS=`parse "$TARGET"`
 		ALLDEPS=`echo -e "$ALLDEPS\n$DEPS"`
@@ -54,12 +71,12 @@ rules(){
 			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
 			exit 1
 		fi
-		cat >> $MAKEFILE << EOF
-$RENDERPATH.mpg: $RENDERPATH/file.lst
-	#TODO: ffmpeg stuff
-EOF
-	RENDERPATH="$(basename $RENDERPATH .$FORMAT).png"
-	FORMAT='png'
+		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
+		echo "#TODO: ffmpeg stuff" >> "$MAKEFILE"
+		
+		RENDERPATH=$(echo $RENDERPATH | sed -e "s|\.$FORMAT$||")".png"
+		FORMAT='png'
+		FFMPEGFORMAT='mpg'
 	fi
 	
 	# Get image dimensions from file if it's unspecified
@@ -68,31 +85,27 @@ EOF
 
 	if [ ! -z $SINGLE ]; then
 		RANGE="--time ${SINGLE}f"
-		OUTPUT="$RENDERPATH"
-		cat >> $MAKEFILE << EOF
-$RENDERPATH: $TARGET $DEPS
-	rm -rf $RENDERPATH
-	synfig -t $FORMAT -o $OUTPUT $RANGE $OPTWIDTH $OPTHEIGHT $TARGET
-EOF
+		OUTPUT=$RENDERPATH
+		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE $OPTWIDTH $OPTHEIGHT \"$TARGET\"" >> "$MAKEFILE"
 	else
 		OUTPUT="$RENDERPATH/file.$FORMAT"
-		cat >> $MAKEFILE << EOF
-$RENDERPATH: $RENDERPATH/file.lst
-.PHONY: $RENDERPATH
-$RENDERPATH/file.lst: $TARGET $DEPS
-	rm -rf $RENDERPATH
-	mkdir -p $RENDERPATH
-	synfig -t $FORMAT -o $OUTPUT $RANGE -w $WIDTH -h $HEIGHT $TARGET
-	echo "FPS $FPS" > $RENDERPATH/file.lst
-	( cd $RENDERPATH; ls -1 *.$FORMAT >> file.lst )
-EOF
+		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
+		echo ".PHONY: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+		echo "`escape "$RENDERPATH"`/file.lst: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE -w $WIDTH -h $HEIGHT \"$TARGET\"" >> "$MAKEFILE"
+		echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
+		echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
 	fi
 
-	echo "$RENDERPATH-clean:" >> $MAKEFILE
-	echo "	rm -rf $RENDERPATH" >> $MAKEFILE
-	if [[ $FORMAT == 'mpg' ]]; then
-		RENDERPATH="$(basename $RENDERPATH .$FORMAT).mpg"
-		echo "	rm -f $RENDERPATH.mpg" >> $MAKEFILE
+	echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
+	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+	if [ ! -z $FFMPEGFORMAT ]; then
+		RENDERPATH=$(echo $RENDERPATH | sed -e "s|\.$FORMAT$||")".$FFMPEGFORMAT"
+		echo "	rm -f \"$RENDERPATH\"" >> "$MAKEFILE"
 	fi
 }
 
@@ -101,4 +114,4 @@ if ! ( which synfig > /dev/null 2>&1 ); then
 	exit 1
 fi
 
-$1 $2
+$1 "$2"
