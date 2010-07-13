@@ -1,0 +1,33 @@
+#!/bin/bash
+
+escape()
+{
+echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
+
+format(){
+	# sound files are always rendered to wav format
+	echo "wav"
+}
+
+deps(){
+	echo
+}
+
+rules(){
+	echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+	cat >> "$MAKEFILE" << EOF
+	rm -rf "$RENDERPATH"
+	oggdec "$TARGET" -o "$RENDERPATH"
+EOF
+
+	echo "`escape "$RENDERPATH-clean:"`" >> "$MAKEFILE"
+	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+}
+
+if ! ( which oggdec > /dev/null 2>&1 ); then
+	echo "   FATAL: Can't find 'oggdec' binary!" >&2
+	exit 1
+fi
+
+$1 "$2"
