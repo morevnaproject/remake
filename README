@@ -18,7 +18,7 @@ The requirements for "Remake" are:
      (http://www.blender.org/)
  [-] synfig >= 0.62.00 - required by "mod_sif" for 2D animation
      (http://synfig.org/)
- [-] oggdec - required by "mod_ogg" for ogg files support 
+ [-] vorbis-tools - required by "mod_ogg" for ogg files support 
      (http://www.xiph.org/)
 
 where:
