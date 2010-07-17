@@ -1,0 +1,35 @@
+
+= Remake =
+
+== Overview ==
+"Remake" is open-source solution used in animation production to maintain sources of animation footage. In fact it consist of two parts - template of animation project and a tool for rendering (and re-rendering) sources in a smart way.
+
+Typically animation project contain footage files which are closely related with each other. When some file in the project is changed you have to re-render it together with all files dependent from it. It is very common that finding those dependencies is a tricky task and in most cases the safest solution is to re-render everything, which is time-consuming. "Remake" automatically tracks changes, detects dependencies between footage files and renders them. It is similar to build system used to compile software, such as "make" and others.
+
+"Remake" is build around a particular toolchain. Currently it is supports "Synfig" (http://synfig.org/) for 2D animation production and "Blender" (http://www.blender.org/) for 3D animation. Complex compositions where 3D is mixed with 2D are supported as well. For footage sequence editing also used "Blender". "Remake" is modular system and can be extended to use with other software.
+
+Currently "Remake" is used in production by the Morevna Project (http://morevnaproject.org/). 
+
+== Requirements ==
+The requirements for "Remake" are:
+ [+] GNU make - for changes tracking 
+     (http://www.gnu.org/software/make/)
+ [+] blender >= 2.49b (with FFMpeg support) - required by "mod_blend" for 3D animation and footage sequence editing
+     (http://www.blender.org/)
+ [-] synfig >= 0.62.00 - required by "mod_sif" for 2D animation
+     (http://synfig.org/)
+ [-] oggdec - required by "mod_ogg" for ogg files support 
+     (http://www.xiph.org/)
+
+where:
+ [+] - mandatory dependency
+ [-] - optional dependency
+
+== How to use it ==
+Please consult http://wiki.github.com/morevnaproject/remake/.
+
+== Copying ==
+See the file LICENSE.
+
+== Copyright ==
+Copyright 2010 Konstantin Dmitriev
