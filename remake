@@ -317,10 +317,22 @@ touch "$MAKEFILE"
 #creating render dir
 #[ -d $REPOROOT/render ] || mkdir -p $REPOROOT/render
 
+echo
+echo "==============================================="
+echo "       First stage: Analyzing files"
+echo "==============================================="
+echo
+
 write_rules "$1"
 echo ".PHONY: clean" >> "$MAKEFILE"
 
 [[ $OPT_KEEP == 0 ]] || cp -f "$MAKEFILE" Makefile
+
+echo
+echo "==============================================="
+echo "       Second stage: Rendering"
+echo "==============================================="
+echo
 
 echo "Running make..."
 make -f "$MAKEFILE" $2
