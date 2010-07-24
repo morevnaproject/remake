@@ -109,6 +109,9 @@ write_rules(){
 	TARGET=$(relpath "`pwd -P`" "$TARGETDIR")/`basename "$1"`
 	EXT=${TARGET##*.}
 	
+	# Default format
+	FORMAT=png
+	
 	# Re-reading config
 	. "$PROJECTROOT/remake.conf"
 	
