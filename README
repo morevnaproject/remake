@@ -10,9 +10,9 @@ When managing animation project with "Remake" you don't need to keep rendered fo
 
 "Remake" is build around a particular toolchain. Currently it is supports "Synfig" (http://synfig.org/) for 2D animation production and "Blender" (http://www.blender.org/) for 3D animation. Complex compositions where 3D is mixed with 2D are supported as well. For footage sequence editing also used "Blender". "Remake" is modular system and can be extended to use with other software.
 
-If you are about to start your own animation project with mentioned open-source tools (or already have one) it is good to try "Remake".
+If you are about to start your own animation project with mentioned open-source tools (or already have one) it is good idea to try "Remake".
 
-Currently "Remake" is used in production by the Morevna Project (http://morevnaproject.org/). 
+Currently "Remake" is used in production by the Morevna Project (http://morevnaproject.org/).
 
 == Requirements ==
 The requirements for "Remake" are:
