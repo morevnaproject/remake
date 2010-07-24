@@ -20,7 +20,7 @@
       </color>
     </param>
   </layer>
-  <layer type="text" active="true" version="0.2" desc="Company Name">
+  <layer type="text" active="true" version="0.2" desc="Presents">
     <param name="z_depth">
       <real value="0.0000000000"/>
     </param>
@@ -51,15 +51,15 @@
       <integer value="400"/>
     </param>
     <param name="compress">
-      <real value="1.3000000000"/>
+      <real value="1.4000000000"/>
     </param>
     <param name="vcompress">
       <real value="1.0000000000"/>
     </param>
     <param name="size">
       <vector>
-        <x>0.1833333373</x>
-        <y>0.1833333373</y>
+        <x>0.1333333403</x>
+        <y>0.1333333403</y>
       </vector>
     </param>
     <param name="orient">
