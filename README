@@ -6,7 +6,11 @@
 
 Typically animation project contain footage files which are closely related with each other. When some file in the project is changed you have to re-render it together with all files dependent from it. It is very common that finding those dependencies is a tricky task and in most cases the safest solution is to re-render everything, which is time-consuming. "Remake" automatically tracks changes, detects dependencies between footage files and renders them. It is similar to build system used to compile software, such as "make" and others.
 
+When managing animation project with "Remake" you don't need to keep rendered footage with the project - it always can be easily re-rendered from the source files with a single command. That's especially important for teams collaborating on the project online. The bandwidth required for transfering project files is reduced dramatically, as there's no need to transfer rendered files together with sources. Every collaborating person renders sources himself, choosing preferred resolution he is comfortable to work with. In such cases "Remake" is most effective when used with some version control system (svn, git, etc.).
+
 "Remake" is build around a particular toolchain. Currently it is supports "Synfig" (http://synfig.org/) for 2D animation production and "Blender" (http://www.blender.org/) for 3D animation. Complex compositions where 3D is mixed with 2D are supported as well. For footage sequence editing also used "Blender". "Remake" is modular system and can be extended to use with other software.
+
+If you are about to start your own animation project with mentioned open-source tools (or already have one) it is good to try "Remake".
 
 Currently "Remake" is used in production by the Morevna Project (http://morevnaproject.org/). 
 
@@ -16,7 +20,7 @@ The requirements for "Remake" are:
      (http://www.gnu.org/software/make/)
  [+] blender >= 2.49b (with FFMpeg support) - required by "mod_blend" for 3D animation and footage sequence editing
      (http://www.blender.org/)
- [-] synfig >= 0.62.00 - required by "mod_sif" for 2D animation
+ [+] synfig >= 0.62.00 - required by "mod_sif" for 2D animation
      (http://synfig.org/)
  [-] vorbis-tools - required by "mod_ogg" for ogg files support 
      (http://www.xiph.org/)
