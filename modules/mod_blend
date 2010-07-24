@@ -110,7 +110,7 @@ rules(){
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
 			OUTPUT="\`pwd\`/$RENDERPATH/file"
 			echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH/file.lst"`" >> "$MAKEFILE"
-			echo ".PHONY: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+			echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
 			echo "`escape "$RENDERPATH/file.lst"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		fi
 		if [[ $BLENDERFORMAT == 'MPEG' ]]; then

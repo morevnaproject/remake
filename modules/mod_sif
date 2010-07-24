@@ -92,7 +92,7 @@ rules(){
 	else
 		OUTPUT="$RENDERPATH/file.$FORMAT"
 		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
-		echo ".PHONY: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+		echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
 		echo "`escape "$RENDERPATH"`/file.lst: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
 		echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
