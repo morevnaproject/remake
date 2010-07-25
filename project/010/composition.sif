@@ -809,47 +809,12 @@
           </vector>
         </waypoint>
         <waypoint time="8.33333302s" before="auto" after="auto">
-          <vector guid="B53B2D33937B0C169643783E9EA6A981">
+          <vector>
             <x>-5.5174207687</x>
             <y>0.0000000000</y>
           </vector>
         </waypoint>
       </animated>
-    </param>
-  </layer>
-  <layer type="import" active="true" version="0.1" desc="file.lst">
-    <param name="z_depth">
-      <real value="0.0000000000"/>
-    </param>
-    <param name="amount">
-      <real value="1.0000000000"/>
-    </param>
-    <param name="blend_method">
-      <integer value="0"/>
-    </param>
-    <param name="tl">
-      <vector>
-        <x>-4.0000000000</x>
-        <y>2.2500000000</y>
-      </vector>
-    </param>
-    <param name="br">
-      <vector>
-        <x>4.0000000000</x>
-        <y>-2.2500000000</y>
-      </vector>
-    </param>
-    <param name="c">
-      <integer value="1"/>
-    </param>
-    <param name="gamma_adjust">
-      <real value="1.0000000000"/>
-    </param>
-    <param name="filename">
-      <string>../render/010/ball.blend.png/file.lst</string>
-    </param>
-    <param name="time_offset">
-      <time value="0s"/>
     </param>
   </layer>
 </canvas>
