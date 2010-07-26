@@ -78,23 +78,28 @@ relpath(){
 }
 
 get_project_root() {
-	if [ -f ./remake.conf ]; then
-		pwd -P
+	if [ -d "$1" ]; then
+		pushd "$1" >/dev/null
+		TESTDIR=`pwd -P`
+		popd >/dev/null
 	else
-		if [[ "`pwd -P`" == '/' ]]; then
+		TESTDIR="$1"
+	fi
+	if [ -f "$TESTDIR/remake.conf" ]; then
+		echo $TESTDIR
+	else
+		if [[ "$TESTDIR" == '/' ]]; then
 			echo "   ERROR: Not a 'remake' project." 1>&2
 			exit
 		fi
-		pushd .. >/dev/null
-		get_project_root
-		popd >/dev/null
+		get_project_root "`dirname \"$TESTDIR\"`"
 	fi
 }
 
 write_rules(){
 	
+	PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 	pushd "`dirname "$1"`" >/dev/null
-	PROJECTROOT=`get_project_root`
 	RENDERPREFIX=$(pwd -P | sed -e "s|$PROJECTROOT||")
 	[ -d "$PROJECTROOT/render${RENDERPREFIX}" ] || mkdir -p "$PROJECTROOT/render${RENDERPREFIX}"
 	TARGETDIR=`pwd -P`
@@ -160,7 +165,7 @@ write_rules(){
 		echo "   WARNING: Don't know how to handle file with $EXT extension."
 		echo "            Skipping."
 	else
-		#bash -x $SCRIPT_PATH/modules/mod_$EXT deps
+		#bash -x "$SCRIPT_PATH/modules/mod_$EXT" deps
 		RAWDEPS=`bash -e "$SCRIPT_PATH/modules/mod_$EXT" deps`
 		# Removing duplicates
 		RAWDEPS=`echo "$RAWDEPS" | sort -u`
@@ -173,13 +178,7 @@ write_rules(){
 				# sequence in dir which is not exists
 				DIR=`dirname "$DIR"`
 			fi
-			if [ -d "$DIR" ]; then
-				pushd "$DIR" >/dev/null
-				EXTPROJECTROOT=`get_project_root`
-				popd  >/dev/null
-			else
-				EXTPROJECTROOT=""
-			fi
+			EXTPROJECTROOT=`get_project_root "$DIR"`
 			if [[ $EXTPROJECTROOT == "" ]]; then
 				# Report files outside of the repo
 				echo "   $LINE"
@@ -305,9 +304,7 @@ if [ ! -f "$1" ]; then
 	exit 1
 fi
 
-pushd "`dirname "$1"`">/dev/null
-PROJECTROOT=`get_project_root`
-popd >/dev/null
+PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 
 [ -d "${PROJECTROOT}/render/tmp" ] || mkdir -p "${PROJECTROOT}/render/tmp"
 MAKEFILE=${PROJECTROOT}/render/tmp/Makefile.$$
