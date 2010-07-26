@@ -14,17 +14,21 @@ deps(){
 		TARGET=$1
 	fi
 	
-	SCRIPTPATH=$(cd "`dirname "$0"`"; pwd)/mod_blend_deps.py
+	SCRIPTPATH="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.deps.py|"`"
 	
-	pushd "`dirname "$TARGET"`" > /dev/null
+	cat > "$SCRIPTPATH" << EOF
+import Blender
+paths = Blender.GetPaths(1)
+for f in paths:
+	print "dependency: %s" % f
+EOF
 	
-	blender -b "`basename \"$TARGET\"`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
+	blender -b "`pwd`/$TARGET" -P "`pwd`/$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
 		echo $LINE
 		if ( echo $LINE | grep -E '.blend$' >/dev/null); then
 			deps "$LINE"
 		fi
 	done
-	popd >/dev/null
 }
 
 renderscript(){
@@ -95,7 +99,7 @@ rules(){
 		BLENDERFORMAT="MPEG"
 	fi
 	
-	RENDERSCRIPT="$(echo "$RENDERPATH" | sed -e 's|\.$FORMAT$||').py"
+	RENDERSCRIPT="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.py|"`"
 	renderscript
 
 	if [ ! -z $SINGLE ]; then
