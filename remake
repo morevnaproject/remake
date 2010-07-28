@@ -114,8 +114,9 @@ write_rules(){
 	TARGET=$(relpath "`pwd -P`" "$TARGETDIR")/`basename "$1"`
 	EXT=${TARGET##*.}
 	
-	# Default format
+	# Defaults
 	FORMAT=png
+	UPDATE=0
 	
 	# Re-reading config
 	. "$PROJECTROOT/remake.conf"
@@ -153,6 +154,7 @@ write_rules(){
 	export FORMAT
 	export FPS
 	export SINGLE
+	export UPDATE
 	
 	export TARGET
 	export RENDERPATH
