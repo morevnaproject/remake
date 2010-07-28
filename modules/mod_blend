@@ -33,12 +33,15 @@ EOF
 
 renderscript(){
 	[ ! -d "`dirname "$RENDERSCRIPT"`" ] || mkdir -p "`dirname "$RENDERSCRIPT"`"
+	if [ -z $UPDATE ]; then
+		UPDATE=0
+	fi
 	cat > "$RENDERSCRIPT" << EOF
-from Blender import Scene, Object
+import Blender
 import sys
 
 def main():
-	for sce in Scene.Get():
+	for sce in Blender.Scene.Get():
 		rend = sce.render
 		rend.freeImages = True
 		rend.saveBuffers = True
@@ -54,7 +57,7 @@ def main():
 			sce.makeCurrent()
 		
 	# Settings for render scene
-	sce = Scene.GetCurrent()
+	sce = Blender.Scene.GetCurrent()
 	rend = sce.render
 	
 	rend.renderwinSize = 100
@@ -62,6 +65,12 @@ def main():
 	#rend.enablePremultiply()
 	
 	rend.enableRGBAColor()
+	
+	# Suff for updating file
+	update = $UPDATE
+	size_x = rend.sizeX
+	size_y = rend.sizeY
+	fps = rend.fps
 EOF
 	# Get image dimensions from file if it's unspecified
 	
@@ -84,8 +93,12 @@ EOF
 	rend.touch = False
 	rend.noOverwrite = False
 	
-	# rend.imageType = Scene.Render.$BLENDERFORMAT
-
+	# rend.imageType = Blender.Scene.Render.$BLENDERFORMAT
+	
+	# Update .blend file if we have width or height changed
+	if update != 0 and ( size_x != rend.sizeX or size_y != rend.sizeY or fps != rend.fps ):
+		Blender.Save("`pwd`/$TARGET", 1)
+	
 if __name__ == '__main__':
 	main()
 EOF
