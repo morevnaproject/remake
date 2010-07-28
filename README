@@ -1,6 +1,8 @@
 
 = Remake =
 
+http://github.com/morevnaproject/remake
+
 == Overview ==
 "Remake" is open-source solution used in animation production to maintain sources of animation footage. In fact it consist of two parts - template of animation project and a tool for rendering (and re-rendering) sources in a smart way.
 
@@ -18,7 +20,7 @@ Currently "Remake" is used in production by the Morevna Project (http://morevnap
 The requirements for "Remake" are:
  [+] GNU make - for changes tracking 
      (http://www.gnu.org/software/make/)
- [+] blender >= 2.49b (with FFMpeg support) - required by "mod_blend" for 3D animation and footage sequence editing
+ [+] blender 2.4x >= 2.48 (with FFMpeg support) - required by "mod_blend" for 3D animation and footage sequence editing
      (http://www.blender.org/)
  [+] synfig >= 0.62.00 - required by "mod_sif" for 2D animation
      (http://synfig.org/)
