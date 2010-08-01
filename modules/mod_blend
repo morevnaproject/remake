@@ -17,10 +17,21 @@ deps(){
 	SCRIPTPATH="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.deps.py|"`"
 	
 	cat > "$SCRIPTPATH" << EOF
-import Blender
-paths = Blender.GetPaths(1)
+try:
+	# blender 2.4x stuff
+	import Blender
+	paths = Blender.GetPaths(1)
+except:
+	# blender 2.5x stuff
+	import bpy
+	paths = bpy.utils.blend_paths(1)
 for f in paths:
-	print "dependency: %s" % f
+	try:
+		# python 3.0
+		print("dependency: %s" % f)
+	except:
+		# python 2.5
+		print "dependency: %s" % f
 EOF
 	
 	blender -b "`pwd`/$TARGET" -P "`pwd`/$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
