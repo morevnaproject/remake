@@ -136,7 +136,7 @@ rules(){
 	else
 		RANGE="-a"
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
-			OUTPUT="\`pwd\`/$RENDERPATH/file"
+			OUTPUT="\`pwd\`/$RENDERPATH/file.####"
 			echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH/file.lst"`" >> "$MAKEFILE"
 			echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
 			echo "`escape "$RENDERPATH/file.lst"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
