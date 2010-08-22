@@ -48,67 +48,134 @@ renderscript(){
 		UPDATE=0
 	fi
 	cat > "$RENDERSCRIPT" << EOF
-import Blender
 import sys
 
+try:
+	import Blender
+	blender_version = "2.4x"
+except:
+	import bpy
+	blender_version = "2.5x"
+	
+
 def main():
-	for sce in Blender.Scene.Get():
-		rend = sce.render
-		rend.freeImages = True
-		rend.saveBuffers = True
-		rend.compositeFree = True
-		
-		rend.oversampling = $OSA
-		
-		rend.OSALevel = 8
-		
-		rend.fieldRendering = False
-		
-		if sce.getName() == 'Scene':
-			sce.makeCurrent()
-		
-	# Settings for render scene
-	sce = Blender.Scene.GetCurrent()
-	rend = sce.render
-	
-	rend.renderwinSize = 100
-	
-	#rend.enablePremultiply()
-	
-	rend.enableRGBAColor()
-	
-	# Suff for updating file
 	update = $UPDATE
-	size_x = rend.sizeX
-	size_y = rend.sizeY
-	fps = rend.fps
+	if blender_version == "2.4x":
+		# Blender 2.4x
+		for sce in Blender.Scene.Get():
+			rend = sce.render
+			rend.freeImages = True
+			rend.saveBuffers = True
+			rend.compositeFree = True
+	
+			rend.oversampling = $OSA
+	
+			rend.OSALevel = 8
+	
+			rend.fieldRendering = False
+	
+			if sce.getName() == 'Scene':
+				sce.makeCurrent()
+	
+		# Settings for render scene
+		sce = Blender.Scene.GetCurrent()
+		rend = sce.render
+
+		rend.renderwinSize = 100
+
+		#rend.enablePremultiply()
+
+		rend.enableRGBAColor()
+
+		# Suff for updating file
+		size_x = rend.sizeX
+		size_y = rend.sizeY
+		fps = rend.fps
 EOF
 	# Get image dimensions from file if it's unspecified
-	
-	
-	[ -z $WIDTH ] || echo "	rend.sizeX = $WIDTH" >> "$RENDERSCRIPT"
-	[ -z $HEIGHT ] || echo "	rend.sizeY = $HEIGHT" >> "$RENDERSCRIPT"
-	
+
+
+	[ -z $WIDTH ] || echo "		rend.sizeX = $WIDTH" >> "$RENDERSCRIPT"
+	[ -z $HEIGHT ] || echo "		rend.sizeY = $HEIGHT" >> "$RENDERSCRIPT"
+
 	cat >> "$RENDERSCRIPT" << EOF
+
+		rend.xParts = 4
+		rend.yParts = 4
+
+		rend.fps = $FPS
+
+		# OPENEXR stuff
+		#rend.zbuf = False
+		#rend.halfFloat = True
+		#rend.preview = False
+
+		rend.touch = False
+		rend.noOverwrite = False
+
+		# rend.imageType = Blender.Scene.Render.$BLENDERFORMAT
+
+		# Update .blend file if we have width or height changed
+		if update != 0 and ( size_x != rend.sizeX or size_y != rend.sizeY or fps != rend.fps ):
+			Blender.Save("`pwd`/$TARGET", 1)
+	else:
+		# Blender 2.5x
+		print("Test")
+		for sce in bpy.data.scenes:
+			rend = sce.render
+			#rend.use_free_image_textures = True		# not in 2.53 yet
+			#rend.use_save_buffers = True				# not in 2.53 yet
+			#rend.use_free_unused_nodes = True			# not in 2.53 yet
+			
+			#rend.use_antialiasing = $OSA				# not in 2.53 yet
 	
-	rend.xParts = 4
-	rend.yParts = 4
+			rend.antialiasing_samples = '8'
 	
-	rend.fps = $FPS
-	
-	# OPENEXR stuff
-	#rend.zbuf = False
-	#rend.halfFloat = True
-	#rend.preview = False
-	
-	rend.touch = False
-	rend.noOverwrite = False
-	
-	# rend.imageType = Blender.Scene.Render.$BLENDERFORMAT
-	
-	# Update .blend file if we have width or height changed
-	if update != 0 and ( size_x != rend.sizeX or size_y != rend.sizeY or fps != rend.fps ):
-		Blender.Save("`pwd`/$TARGET", 1)
+			#rend.use_fields = False					# not in 2.53 yet
+		
+		# Settings below should apply for current scene
+		sce = bpy.context.scene
+		rend = sce.render
+
+		rend.resolution_percentage = 100
+
+		#rend.alpha_mode = "PREMUL"
+
+		rend.color_mode = "RGBA"
+
+		# Suff for updating file
+		size_x = rend.resolution_x
+		size_y = rend.resolution_y
+		fps = rend.fps
+EOF
+	# Get image dimensions from file if it's unspecified
+
+
+	[ -z $WIDTH ] || echo 	"		rend.resolution_x = $WIDTH" >> "$RENDERSCRIPT"
+	[ -z $HEIGHT ] || echo	"		rend.resolution_y = $HEIGHT" >> "$RENDERSCRIPT"
+
+	cat >> "$RENDERSCRIPT" << EOF
+
+		rend.parts_x = 4
+		rend.parts_y = 4
+
+		rend.fps = $FPS
+
+		# OPENEXR stuff
+		#rend.exr_zbuf = False
+		#rend.use_exr_half = True
+		#rend.exr_preview = False
+
+		rend.use_placeholder = False
+		rend.use_overwrite = True
+
+		# rend.file_format = $BLENDERFORMAT
+
+		# Update .blend file if we have width or height changed
+		if update != 0 and ( size_x != rend.resolution_x or size_y != rend.resolution_y or fps != rend.fps ):
+			bpy.ops.wm.save_mainfile("EXEC_DEFAULT",filepath="`pwd`/$TARGET")
+
+			
 	
 if __name__ == '__main__':
 	main()
