@@ -343,6 +343,13 @@ if [ ! -f "$1" ]; then
 	exit 1
 fi
 
+if [[ "$2" == 'snapshot' ]]; then
+	if ! ( which ffmpeg > /dev/null 2>&1 ); then
+	echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+	exit 1
+fi
+fi
+
 PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 
 [ -d "${PROJECTROOT}/render/tmp" ] || mkdir -p "${PROJECTROOT}/render/tmp"
