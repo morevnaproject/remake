@@ -17,6 +17,28 @@ deps(){
 	SCRIPTPATH="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.deps.py|"`"
 	
 	cat > "$SCRIPTPATH" << EOF
+# print fix
+try:
+  Print = eval("print") # python 3.0 case
+except SyntaxError:
+  try:
+    D = dict()
+    exec("from __future__ import print_function\np=print", D)
+    Print = D["p"] # 2.6 case
+    del D
+  except SyntaxError:
+    del D
+    def Print(*args, **kwd): # 2.4, 2.5, define our own Print function
+      fout = kwd.get("file", sys.stdout)
+      w = fout.write
+      if args:
+        w(str(args[0]))
+        sep = kwd.get("sep", " ")
+        for a in args[1:]:
+          w(sep)
+          w(str(a))
+      w(kwd.get("end", "\n"))
+
 try:
 	# blender 2.4x stuff
 	import Blender
@@ -26,12 +48,7 @@ except:
 	import bpy
 	paths = bpy.utils.blend_paths(1)
 for f in paths:
-	try:
-		# python 3.0
-		print("dependency: %s" % f)
-	except:
-		# python 2.5
-		print "dependency: %s" % f
+	Print("dependency: %s" % f)
 EOF
 	
 	blender -b "`pwd`/$TARGET" -P "`pwd`/$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
