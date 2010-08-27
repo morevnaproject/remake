@@ -103,7 +103,7 @@ def main():
 
 		#rend.enablePremultiply()
 
-		rend.enableRGBAColor()
+		#rend.enableRGBAColor()
 
 		# Suff for updating file
 		size_x = rend.sizeX
@@ -159,7 +159,7 @@ EOF
 
 		#rend.alpha_mode = "PREMUL"
 
-		rend.color_mode = "RGBA"
+		#rend.color_mode = "RGBA"
 
 		# Suff for updating file
 		size_x = rend.resolution_x
