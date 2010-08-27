@@ -11,7 +11,6 @@ cd `dirname "${SCRIPT_PATH}"` > /dev/null
 SCRIPT_PATH=`pwd`;
 popd  > /dev/null
 #SCRIPT_PATH=$(cd `dirname $0`; pwd)
-#REPOROOT=$(dirname `git rev-parse --git-dir`)
 
 escape()
 {
@@ -149,12 +148,10 @@ write_rules(){
 	# check if rules for this target are already written
 	#echo $RENDERPATH
 	
-	#RENDERPATH=`echo "$RENDERPATH"| sed -e "s/ /\\\\\\\\ /g"`
 	
 	if ! ( cat "$MAKEFILE" | grep -E "^$RENDERPATH:" >/dev/null ); then
 	
 	echo "Retrieving deps for '$TARGET'..."
-	#TARGET=`echo "$TARGET"| sed -e "s/ /\\\\\\\\ /g"`
 	
 	export WIDTH
 	export HEIGHT
@@ -279,7 +276,7 @@ write_rules(){
 				COMMITID=$(git show --pretty=oneline|head -n 1|sed 's/ .*//')
 				COMMITID="-$COMMITID"
 			fi
-			popd
+			popd >/dev/null
 			
 			SNAPSHOTPATH=$(relpath "`pwd -P`" "$PROJECTROOT/snapshots${RENDERPREFIX}")/`basename "$TARGET"`-`date +%Y%m%d-%H%M%S`${COMMITID}
 			echo "snapshot: `escape "$SNAPSHOTPATH"`" >> "$MAKEFILE"
