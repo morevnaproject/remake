@@ -20,16 +20,22 @@ echo "$1"| sed -e "s/ /\\\\\\ /g"
 usage()
 {
 cat << EOF
-usage: $0 [options] file [action]
+usage: $0 [options] file [command]
 
-This script generates Makefile and renders your 
-animation project taking all dependencies into 
-account.
+This script generates Makefile and renders your animation project taking all 
+dependencies into account.
 
 OPTIONS:
   -h            Show this message.
-  -t <threads>  Use amount of <threads> for rendering. Use 0 for no limit.
-  -k            Keep Makefile so you can re-invoke rendering by typing 'make'.
+  -k            Keep Makefile so you can skip dependency detection and re-invoke 
+                rendering by typing 'make'.
+  -t <threads>  Specify the amount of rendering jobs to be run in parallel. 
+                Use zero for no limit.
+
+COMMANDS:
+  snapshot      Additionally save snapshot of the current rendering as video file
+                in the 'snapshots/' subdirectory in the project tree.
+  clean         Remove all rendered footage associated with the file.
 EOF
 }
 
