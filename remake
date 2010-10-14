@@ -269,6 +269,11 @@ write_rules(){
 			bash -e "$SCRIPT_PATH/modules/mod_$EXT" rules
 		fi
 		
+		if [[ "$2" == 'deps' ]]; then
+			echo ".PHONY: deps" >> "$MAKEFILE"
+			echo "deps: $DEPS" >> "$MAKEFILE"
+		fi
+		
 		echo ".PHONY: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		
