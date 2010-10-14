@@ -138,7 +138,6 @@ EOF
 			Blender.Save("`pwd`/$TARGET", 1)
 	else:
 		# Blender 2.5x
-		print("Test")
 		for sce in bpy.data.scenes:
 			rend = sce.render
 			#rend.use_free_image_textures = True		# not in 2.53 yet
