@@ -1,0 +1,67 @@
+#!/bin/bash
+
+escape()
+{
+echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
+
+format(){
+	# Only PNG output format is supported
+	echo "png"
+}
+
+abspath(){
+	readlink -m "$1"
+}
+
+deps(){
+	if [ ! -z $1 ]; then 
+		TARGET=$1
+	fi
+	
+	echo "`abspath \"$TARGET\"`.data"
+}
+
+rules(){
+	if [[ $FORMAT == 'mpg' ]]; then
+		if ! ( which ffmpeg > /dev/null 2>&1 ); then
+			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+			exit 1
+		fi
+		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
+		echo "#TODO: ffmpeg stuff" >> "$MAKEFILE"
+		
+		RENDERPATH=$(echo $RENDERPATH | sed -e "s|\.$FORMAT$||")".png"
+		FORMAT='png'
+		FFMPEGFORMAT='mpg'
+	fi
+
+	OUTPUT="$RENDERPATH/file.$FORMAT"
+	echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
+	echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
+	echo "`escape "$RENDERPATH"`/file.lst: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+	echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
+	echo "	$PENCILBIN \"$TARGET\" --export-sequence \"$OUTPUT\" " >> "$MAKEFILE"
+	echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
+	echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
+
+	echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
+	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+	if [ ! -z $FFMPEGFORMAT ]; then
+		RENDERPATH=$(echo $RENDERPATH | sed -e "s|\.$FORMAT$||")".$FFMPEGFORMAT"
+		echo "	rm -f \"$RENDERPATH\"" >> "$MAKEFILE"
+	fi
+}
+
+export PENCILBIN=''
+if ( which pencil > /dev/null 2>&1 ); then
+	PENCILBIN='pencil'
+elif ( which Pencil > /dev/null 2>&1 ); then
+	PENCILBIN='Pencil'
+else
+	echo "   FATAL: Can't find 'pencil' binary!" >&2
+	exit 1
+fi
+
+$1 "$2"
