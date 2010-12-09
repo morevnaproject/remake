@@ -29,6 +29,7 @@ OPTIONS:
   -h            Show this message.
   -k            Keep Makefile so you can skip dependency detection and re-invoke 
                 rendering by typing 'make'.
+  -s            Render stereoscopic 3D (side-by-side).
   -t <threads>  Specify the amount of rendering jobs to be run in parallel. 
                 Use zero for no limit.
 
@@ -310,8 +311,9 @@ write_rules(){
 }
 
 OPT_KEEP=0
+OPT_MODE="normal"
 THREADS=1
-while getopts "hkt:" OPTION
+while getopts "hks:t:" OPTION
 do
      case $OPTION in
          h)
@@ -321,6 +323,9 @@ do
          k)
              OPT_KEEP=1
              ;;
+         s)
+         	OPT_MODE="stereo"
+         	;;
          t)
              THREADS="$OPTARG"
              if [[ $THREADS == 0 ]]; then
@@ -364,9 +369,6 @@ PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 MAKEFILE=${PROJECTROOT}/render/tmp/Makefile.$$
 [ ! -e "$MAKEFILE" ] || rm "$MAKEFILE"
 touch "$MAKEFILE"
-
-#creating render dir
-#[ -d $REPOROOT/render ] || mkdir -p $REPOROOT/render
 
 echo
 echo "==============================================="
