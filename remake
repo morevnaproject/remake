@@ -26,6 +26,7 @@ This script generates Makefile and renders your animation project taking all
 dependencies into account.
 
 OPTIONS:
+  -f <format>   Force output format.
   -h            Show this message.
   -k            Keep Makefile so you can skip dependency detection and re-invoke 
                 rendering by typing 'make'.
@@ -143,6 +144,11 @@ write_rules(){
 	if [ -e "${TARGET}.conf" ]; then
 		. "${TARGET}.conf"
 		DEPS="$DEPS `escape "${TARGET}.conf"`"
+	fi
+	
+	# Format can be overriden by commandline option
+	if [ ! -z "$3" ]; then
+		FORMAT="$3"
 	fi
 	
 	# Format should be forced to PNG if snapshot is requested
@@ -313,9 +319,12 @@ write_rules(){
 OPT_KEEP=0
 OPT_MODE="normal"
 THREADS=1
-while getopts "hks:t:" OPTION
+while getopts "f:hks:t:" OPTION
 do
      case $OPTION in
+         f)
+             OPT_FORMAT="$OPTARG"
+             ;;
          h)
              usage
              exit 1
@@ -324,8 +333,8 @@ do
              OPT_KEEP=1
              ;;
          s)
-         	OPT_MODE="stereo"
-         	;;
+             OPT_MODE="stereo"
+             ;;
          t)
              THREADS="$OPTARG"
              if [[ $THREADS == 0 ]]; then
@@ -376,7 +385,7 @@ echo "       First stage: Analyzing files"
 echo "==============================================="
 echo
 
-write_rules "$1" "$2"
+write_rules "$1" "$2" "$OPT_FORMAT"
 echo ".PHONY: clean" >> "$MAKEFILE"
 
 [[ $OPT_KEEP == 0 ]] || cp -f "$MAKEFILE" Makefile
