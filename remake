@@ -38,6 +38,7 @@ COMMANDS:
   snapshot      Additionally save snapshot of the current rendering as video file
                 in the 'snapshots/' subdirectory in the project tree.
   clean         Remove all rendered footage associated with the file.
+  deps          Render all dependencies of the given file, but not the file itself.
 EOF
 }
 
