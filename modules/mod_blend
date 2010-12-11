@@ -95,8 +95,14 @@ def main():
 			if sce.getName() == 'Scene':
 				sce.makeCurrent()
 	
-		# Settings for render scene
+		# Scene rendering setting
 		sce = Blender.Scene.GetCurrent()
+		
+		for ob in sce.objects:
+			if ob.name=="$CAMERA":
+				sce.setCurrentCamera(ob)
+				break
+		
 		rend = sce.render
 
 		rend.renderwinSize = 100
@@ -152,6 +158,12 @@ EOF
 		
 		# Settings below should apply for current scene
 		sce = bpy.context.scene
+		
+		for ob in sce.objects:
+			if ob.name=="$CAMERA":
+				sce.camera=ob
+				break
+		
 		rend = sce.render
 
 		rend.resolution_percentage = 100
@@ -192,7 +204,7 @@ EOF
 		if update != 0 and ( size_x != rend.resolution_x or size_y != rend.resolution_y or fps != rend.fps ):
 			bpy.ops.wm.save_mainfile("EXEC_DEFAULT",filepath="`pwd`/$TARGET")
 
-			
+
 	
 if __name__ == '__main__':
 	main()

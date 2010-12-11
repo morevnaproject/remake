@@ -26,19 +26,20 @@ This script generates Makefile and renders your animation project taking all
 dependencies into account.
 
 OPTIONS:
+  -c <camera>   Select camera to render from (if applicable).
   -f <format>   Force output format.
   -h            Show this message.
   -k            Keep Makefile so you can skip dependency detection and re-invoke 
                 rendering by typing 'make'.
-  -s            Render stereoscopic 3D (side-by-side).
   -t <threads>  Specify the amount of rendering jobs to be run in parallel. 
                 Use zero for no limit.
 
 COMMANDS:
-  snapshot      Additionally save snapshot of the current rendering as video file
-                in the 'snapshots/' subdirectory in the project tree.
   clean         Remove all rendered footage associated with the file.
   deps          Render all dependencies of the given file, but not the file itself.
+  snapshot      Additionally save snapshot of the current rendering as video file
+                in the 'snapshots/' subdirectory in the project tree.
+  stereo        Render stereoscopic 3D (side-by-side).
 EOF
 }
 
@@ -285,6 +286,38 @@ write_rules(){
 		echo ".PHONY: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		
+		# Stereo rendering
+		if [[ "$2" == 'stereo' ]]; then
+			
+			RENDERPATH_STEREO=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`-stereo
+			RENDERPATH_AUDIO="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.mp2|"`"
+			
+			REMAKE_BINARY="$0"
+			pushd . > /dev/null
+			cd `dirname $REMAKE_BINARY` > /dev/null
+			REMAKE_BINARY=`pwd -P`/`basename $REMAKE_BINARY`;
+			popd  > /dev/null
+			
+			echo "stereo: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
+			echo ".PHONY: stereo" >> "$MAKEFILE"
+			echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+			echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/left\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/left\"" >> "$MAKEFILE"
+			echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
+			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
+			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
+			echo "	$REMAKE_BINARY -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGET\"" >> "$MAKEFILE"
+			echo "	$REMAKE_BINARY -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGET\"" >> "$MAKEFILE"
+			echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
+			echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
+			echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/${TARGET}.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/${TARGET}.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/${TARGET}.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
+			echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/${TARGET}.png/file.lst\" \"${RENDERPATH_STEREO}.png/\"" >> "$MAKEFILE"
+			echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
+			echo "ifeq (\$(shell stat -c%s \"$RENDERPATH_AUDIO\"),0)" >> "$MAKEFILE"
+			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"" >> "$MAKEFILE"
+			echo "else" >> "$MAKEFILE"
+			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -i \"$RENDERPATH_AUDIO\" -acodec copy -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"" >> "$MAKEFILE"
+			echo "endif" >> "$MAKEFILE"
+		fi
 		# "Snapshot" rule
 		if [[ "$2" == 'snapshot' ]]; then
 			[ -d "$PROJECTROOT/snapshots${RENDERPREFIX}" ] || mkdir -p "$PROJECTROOT/snapshots${RENDERPREFIX}"
@@ -303,7 +336,7 @@ write_rules(){
 			if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]]; then
 				echo "	cp -f \"${RENDERPATH}\" \"${SNAPSHOTPATH}.$FORMAT\"" >> "$MAKEFILE"
 			else
-				echo "	ffmpeg -i \"${RENDERPATH}/file.%04d.png\" -sameq -r $FPS \"${SNAPSHOTPATH}.avi\"" >> "$MAKEFILE"
+				echo "	ffmpeg -y -i \"${RENDERPATH}/file.%04d.png\" -sameq -r $FPS \"${SNAPSHOTPATH}.avi\"" >> "$MAKEFILE"
 			fi
 			echo ".PHONY: snapshot" >> "$MAKEFILE"
 		fi
@@ -318,11 +351,14 @@ write_rules(){
 }
 
 OPT_KEEP=0
-OPT_MODE="normal"
 THREADS=1
-while getopts "f:hks:t:" OPTION
+CAMERA=""
+while getopts "c:f:hkt:" OPTION
 do
      case $OPTION in
+         c)
+             CAMERA="$OPTARG"
+             ;;
          f)
              OPT_FORMAT="$OPTARG"
              ;;
@@ -332,9 +368,6 @@ do
              ;;
          k)
              OPT_KEEP=1
-             ;;
-         s)
-             OPT_MODE="stereo"
              ;;
          t)
              THREADS="$OPTARG"
@@ -348,6 +381,9 @@ do
              ;;
      esac
 done
+
+export CAMERA
+export THREADS
 
 shift $(($OPTIND - 1))
 
@@ -368,9 +404,23 @@ fi
 
 if [[ "$2" == 'snapshot' ]]; then
 	if ! ( which ffmpeg > /dev/null 2>&1 ); then
-	echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
-	exit 1
+		echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+		exit 1
+	fi
 fi
+
+if [[ "$2" == 'stereo' ]]; then
+	# Force output format to mpg
+	OPT_FORMAT="mpg"
+	# Check requirements
+	if ! ( which ffmpeg > /dev/null 2>&1 ); then
+		echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+		exit 1
+	fi
+	if ! ( which convert > /dev/null 2>&1 ); then
+		echo "   FATAL: ImageMagick not found. Aborting" >&2
+		exit 1
+	fi
 fi
 
 PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
