@@ -64,4 +64,15 @@ else
 	exit 1
 fi
 
+# Magic to check if pencil have required patches
+DISPLAY=cumba:woomba:0.x $PENCILBIN | grep "(Morevna Branch" >/dev/null
+PENCIL_VERSION=`echo $?`
+if [[ $PENCIL_VERSION == 1 ]] ; then
+	echo "   FATAL: This version of Pencil doesn't supports commandline options!"
+	echo "          Please get modified version from any of the following urls:"
+	echo "           * Source: http://github.com/morevnaproject/pencil"
+	echo "           * Binaries: http://morevnaproject.org/packages"
+	exit 1
+fi
+
 $1 "$2"
