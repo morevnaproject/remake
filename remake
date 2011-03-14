@@ -292,12 +292,6 @@ write_rules(){
 			RENDERPATH_STEREO=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`-stereo
 			RENDERPATH_AUDIO="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.mp2|"`"
 			
-			REMAKE_BINARY="$0"
-			pushd . > /dev/null
-			cd `dirname $REMAKE_BINARY` > /dev/null
-			REMAKE_BINARY=`pwd -P`/`basename $REMAKE_BINARY`;
-			popd  > /dev/null
-			
 			echo "stereo: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
 			echo ".PHONY: stereo" >> "$MAKEFILE"
 			echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
@@ -305,8 +299,8 @@ write_rules(){
 			echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
 			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
 			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
-			echo "	$REMAKE_BINARY -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGET\"" >> "$MAKEFILE"
-			echo "	$REMAKE_BINARY -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGET\"" >> "$MAKEFILE"
+			echo "	$SCRIPT_PATH/`basename $0` -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGET\"" >> "$MAKEFILE"
+			echo "	$SCRIPT_PATH/`basename $0` -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGET\"" >> "$MAKEFILE"
 			echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
 			echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
 			echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/${TARGET}.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/${TARGET}.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/${TARGET}.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
