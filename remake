@@ -112,7 +112,8 @@ write_rules(){
 	pushd "`dirname "$1"`" >/dev/null
 	RENDERPREFIX=$(pwd -P | sed -e "s|$PROJECTROOT||")
 	[ -d "$PROJECTROOT/render${RENDERPREFIX}" ] || mkdir -p "$PROJECTROOT/render${RENDERPREFIX}"
-	TARGETDIR=`pwd -P`
+	# TARGETDIR - path to TARGET relative to project root
+	TARGETDIR=$(relpath "$PROJECTROOT" "`pwd -P`")
 	popd  >/dev/null
 	
 	CONFIGPATH=$(relpath "`pwd -P`" "$PROJECTROOT/remake.conf")
@@ -122,7 +123,7 @@ write_rules(){
 	( cat "$PROJECTROOT/.gitignore" | egrep "render/\*" > /dev/null ) || ( echo "render/*" >> "$PROJECTROOT/.gitignore" )
 	( cat "$PROJECTROOT/.gitignore" | egrep "snapshots/\*" > /dev/null ) || ( echo "snapshots/*" >> "$PROJECTROOT/.gitignore" )
 	
-	TARGET=$(relpath "`pwd -P`" "$TARGETDIR")/`basename "$1"`
+	TARGET=$(relpath "`pwd -P`" "$PROJECTROOT/$TARGETDIR")/`basename "$1"`
 	EXT=${TARGET##*.}
 	
 	# Defaults
@@ -299,18 +300,18 @@ write_rules(){
 			echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
 			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
 			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
-			echo "	$SCRIPT_PATH/`basename $0` -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGET\"" >> "$MAKEFILE"
-			echo "	$SCRIPT_PATH/`basename $0` -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGET\"" >> "$MAKEFILE"
+			echo "	$SCRIPT_PATH/`basename $0` -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+			echo "	$SCRIPT_PATH/`basename $0` -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 			echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
 			echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
-			echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/${TARGET}.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/${TARGET}.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/${TARGET}.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
-			echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/${TARGET}.png/file.lst\" \"${RENDERPATH_STEREO}.png/\"" >> "$MAKEFILE"
+			echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
+			echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/file.lst\" \"${RENDERPATH_STEREO}.png/\"" >> "$MAKEFILE"
 			echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
-			echo "ifeq (\$(shell stat -c%s \"$RENDERPATH_AUDIO\"),0)" >> "$MAKEFILE"
-			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"" >> "$MAKEFILE"
-			echo "else" >> "$MAKEFILE"
-			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -i \"$RENDERPATH_AUDIO\" -acodec copy -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"" >> "$MAKEFILE"
-			echo "endif" >> "$MAKEFILE"
+			echo "	if [[ \`stat -c%s \"$RENDERPATH_AUDIO\"\` == 0 ]];then \\" >> "$MAKEFILE"
+			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"; \\" >> "$MAKEFILE"
+			echo "	else \\" >> "$MAKEFILE"
+			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -i \"$RENDERPATH_AUDIO\" -acodec copy -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"; \\" >> "$MAKEFILE"
+			echo "	fi" >> "$MAKEFILE"
 		fi
 		# "Snapshot" rule
 		if [[ "$2" == 'snapshot' ]]; then
