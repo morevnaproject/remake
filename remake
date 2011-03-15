@@ -236,6 +236,7 @@ write_rules(){
 						else
 							if [ ! -e "$TARGETCANDIDATE" ]; then
 								echo "   ERROR: Not found!"
+								LINE=""
 							else
 								echo "         Successfull."
 								LINE=`dirname "$LINE"`
