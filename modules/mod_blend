@@ -86,9 +86,9 @@ def main():
 			rend.saveBuffers = True
 			rend.compositeFree = True
 	
-			rend.oversampling = $OSA
+			#rend.oversampling = $OSA
 	
-			rend.OSALevel = 8
+			#rend.OSALevel = 8
 	
 			rend.fieldRendering = False
 	
@@ -152,7 +152,7 @@ EOF
 			
 			#rend.use_antialiasing = $OSA				# not in 2.53 yet
 	
-			rend.antialiasing_samples = '8'
+			#rend.antialiasing_samples = '8'
 	
 			#rend.use_fields = False					# not in 2.53 yet
 		
