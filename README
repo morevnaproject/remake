@@ -30,6 +30,8 @@ The requirements for "Remake" are:
      (http://www.ffmpeg.org/)
  [-] vorbis-tools - required by "mod_ogg" for ogg files support 
      (http://www.xiph.org/)
+ [-] mpg123 - required by "mod_mp3" for mp3 files support 
+     (http://www.mpg123.de/)
 
 where:
  [+] - mandatory dependency
