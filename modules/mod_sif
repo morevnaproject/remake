@@ -71,10 +71,11 @@ rules(){
 			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
 			exit 1
 		fi
-		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
-		echo "#TODO: ffmpeg stuff" >> "$MAKEFILE"
+		RENDERPATH_BASE="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$||"`"
+		echo "`escape "$RENDERPATH"`: `escape "${RENDERPATH_BASE}.png"`/file.lst" >> "$MAKEFILE"
+		echo "	ffmpeg -y -i \"${RENDERPATH_BASE}.png/file.%04d.png\" -sameq -r $FPS \"${RENDERPATH}\"" >> "$MAKEFILE"
 		
-		RENDERPATH=$(echo $RENDERPATH | sed -e "s|\.$FORMAT$||")".png"
+		RENDERPATH="${RENDERPATH_BASE}.png"
 		FORMAT='png'
 		FFMPEGFORMAT='mpg'
 	fi
