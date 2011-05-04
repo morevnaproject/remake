@@ -14,8 +14,14 @@ abspath(){
 }
 
 parse(){
+	if [[ "${1##*.}" == 'sifz' ]]; then
+		CAT='zcat'
+	else
+		CAT='cat'
+	fi
+	
 	pushd "`dirname "$1"`" >/dev/null
-	DEPS=$(cat "`basename \"$1\"`" | awk 'BEGIN {x=0}{y=0}
+	DEPS=$($CAT "`basename \"$1\"`" | awk 'BEGIN {x=0}{y=0}
 {
 if ($0~"<param name=\"filename\">") {x=1}
 if (x==1) {

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+SIF_MODULE="`dirname $0`/mod_sif"
+
+export WIDTH
+export HEIGHT
+export FORMAT
+export FPS
+export SINGLE
+export UPDATE
+
+export TARGET
+export RENDERPATH
+
+export MAKEFILE
+
+format(){
+	echo $FORMAT
+}
+
+deps(){
+	if [ ! -z $1 ]; then 
+		TARGET=$1
+	fi
+	bash -e $SIF_MODULE deps
+}
+
+rules(){
+	bash -e $SIF_MODULE rules
+}
+
+if ! ( which synfig > /dev/null 2>&1 ); then
+	echo "   FATAL: Can't find 'synfig' binary!" >&2
+	exit 1
+fi
+
+$1 "$2"
