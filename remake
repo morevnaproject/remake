@@ -214,7 +214,7 @@ write_rules(){
 				LINE="$(relpath "`pwd -P`" "$DEPDIR")/`basename "$LINE"`"
 				#LINE=$(relpath `pwd` $LINE)
 				echo "   $LINE"
-				if ( echo $DEPDIR | grep -E "^${EXTPROJECTROOT}/render/" > /dev/null ); then
+				if ( echo $DEPDIR | grep -E "^${EXTPROJECTROOT}/render" > /dev/null ); then
 					
 					#pushd `dirname $LINE` >/dev/null
 					#DEPDIR=`pwd`
