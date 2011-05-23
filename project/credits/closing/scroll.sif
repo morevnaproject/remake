@@ -90,6 +90,23 @@ John Smith</string>
       </vector>
     </param>
     <param name="origin">
+      <vector>
+        <x>0.0000000000</x>
+        <y>-0.3091966212</y>
+      </vector>
+    </param>
+    <param name="use_kerning">
+      <bool value="true"/>
+    </param>
+    <param name="grid_fit">
+      <bool value="false"/>
+    </param>
+    <param name="invert">
+      <bool value="false"/>
+    </param>
+  </layer>
+  <layer type="translate" active="true" version="0.1">
+    <param name="origin">
       <composite type="vector">
         <x>
           <real value="0.0000000000"/>
@@ -105,15 +122,6 @@ John Smith</string>
           </linear>
         </y>
       </composite>
-    </param>
-    <param name="use_kerning">
-      <bool value="true"/>
-    </param>
-    <param name="grid_fit">
-      <bool value="false"/>
-    </param>
-    <param name="invert">
-      <bool value="false"/>
     </param>
   </layer>
 </canvas>
