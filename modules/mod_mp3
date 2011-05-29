@@ -18,7 +18,7 @@ rules(){
 	echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 	cat >> "$MAKEFILE" << EOF
 	rm -rf "$RENDERPATH"
-	mpg123 -w "$RENDERPATH" "$TARGET"
+	mpg123 -r 48000 -w "$RENDERPATH" "$TARGET"
 EOF
 
 	echo "`escape "$RENDERPATH-clean:"`" >> "$MAKEFILE"
