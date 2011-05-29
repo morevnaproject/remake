@@ -45,7 +45,8 @@ try:
 	import Blender
 	paths = Blender.GetPaths(1)
 	for f in paths:
-		Print("dependency: %s" % f)
+		if f!="":
+			Print("dependency: %s" % f)
 except:
 	# blender 2.5x stuff
 	import bpy
@@ -54,7 +55,8 @@ except:
 	# so we forced to fallback to relative paths:
 	paths = bpy.utils.blend_paths(0)
 	for f in paths:
-		Print("dependency: %s" % os.path.abspath(bpy.path.abspath(f)))
+		if f!="":
+			Print("dependency: %s" % os.path.abspath(bpy.path.abspath(f)))
 EOF
 	
 	blender -b "`pwd`/$TARGET" -P "`pwd`/$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
