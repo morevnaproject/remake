@@ -207,10 +207,13 @@ write_rules(){
 				echo "   WARNING: '$LINE' is not belongs to any project."
 				echo "            Skipping."
 			else
-				[ -e "`dirname "$LINE"`" ] || mkdir -p "`dirname "$LINE"`"
-				pushd "`dirname "$LINE"`" >/dev/null
-				DEPDIR=`pwd -P`
-				popd >/dev/null
+				if [ -e "`dirname "$LINE"`" ]; then
+					pushd "`dirname "$LINE"`" >/dev/null
+					DEPDIR=`pwd -P`
+					popd >/dev/null
+				else
+					DEPDIR="`dirname "$LINE"`"
+				fi
 				LINE="$(relpath "`pwd -P`" "$DEPDIR")/`basename "$LINE"`"
 				#LINE=$(relpath `pwd` $LINE)
 				echo "   $LINE"
