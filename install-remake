@@ -1,0 +1,57 @@
+#!/bin/bash
+
+set -e
+
+SCRIPT_PATH=$(cd `dirname $0`; pwd)
+
+BINARY_FILES="remake"
+LIB_FILES=`find modules`
+DATA_FILES=`find project`
+DOC_FILES="LICENSE README"
+
+PREFIX="/usr/local"
+
+if [ ! -z "$1" ]; then
+	if [[ "$1" == "--help" ]]; then
+		echo "Usage: $0 [prefix]"
+		echo
+		echo "Default prefix: /usr/local"
+		exit 0
+	else
+		PREFIX="$1"
+	fi
+fi
+
+echo
+echo "Installing Remake to $PREFIX ..."
+
+cd $SCRIPT_PATH
+
+OLD_IFS=$IFS      # save the field separator    
+IFS=$' \n'     # new field separator, the end of line    
+
+for FILE in $BINARY_FILES
+do
+	COMMAND="install -D -m 755 $FILE ${PREFIX}/bin/$FILE"
+	[ -d $FILE ] || ( echo $COMMAND && $COMMAND )
+done
+
+for FILE in $LIB_FILES
+do
+	COMMAND="install -D -m 644 $FILE ${PREFIX}/lib/remake/$FILE"
+	[ -d $FILE ] || ( echo $COMMAND && $COMMAND )
+done
+
+for FILE in $DATA_FILES
+do
+	COMMAND="install -D -m 644 $FILE ${PREFIX}/share/remake/$FILE"
+	[ -d $FILE ] || ( echo $COMMAND && $COMMAND )
+done
+
+for FILE in $DOC_FILES
+do
+	COMMAND="install -D -m 644 $FILE ${PREFIX}/share/doc/remake/$FILE"
+	[ -d $FILE ] || ( echo $COMMAND && $COMMAND )
+done
+
+IFS=$OLD_IFS     # restore default field separator

@@ -1,0 +1,87 @@
+#!/bin/bash
+
+set +e
+
+SCRIPT_PATH=$(cd `dirname $0`; pwd)
+
+BINARY_FILES="remake"
+LIB_FILES=`find modules -depth`
+DATA_FILES=`find project -depth`
+DOC_FILES="LICENSE README"
+
+PREFIX="/usr/local"
+
+usage(){
+	echo "Usage: $0 [prefix]"
+	echo
+	echo "Default prefix: /usr/local"
+}
+
+if [ ! -z "$1" ]; then
+	if [[ "$1" == "--help" ]]; then
+		usage
+		exit 0
+	else
+		PREFIX="$1"
+	fi
+fi
+
+echo
+echo "Uninstalling Remake from $PREFIX ..."
+
+if [ ! -e ${PREFIX}/bin/remake ]; then
+	echo
+	echo "ERROR: Can't find valid Remake installation in this prefix"
+	echo
+	usage
+	exit 1
+fi
+
+cd $SCRIPT_PATH
+
+OLD_IFS=$IFS      # save the field separator    
+IFS=$' \n'     # new field separator, the end of line    
+
+for FILE in $BINARY_FILES
+do
+	COMMAND="rm -f ${PREFIX}/bin/$FILE"
+	echo $COMMAND && $COMMAND
+done
+
+for FILE in $LIB_FILES
+do
+	if [ -d $FILE ]; then
+		COMMAND="rmdir ${PREFIX}/lib/remake/$FILE"
+	else
+		COMMAND="rm -f ${PREFIX}/lib/remake/$FILE"
+	fi
+	echo $COMMAND && $COMMAND
+done
+COMMAND="rmdir ${PREFIX}/lib/remake"
+echo $COMMAND && $COMMAND
+
+for FILE in $DATA_FILES
+do
+	if [ -d $FILE ]; then
+		COMMAND="rmdir ${PREFIX}/share/remake/$FILE"
+	else
+		COMMAND="rm -f ${PREFIX}/share/remake/$FILE"
+	fi
+	echo $COMMAND && $COMMAND
+done
+COMMAND="rmdir ${PREFIX}/share/remake"
+echo $COMMAND && $COMMAND
+
+for FILE in $DOC_FILES
+do
+	if [ -d $FILE ]; then
+		COMMAND="rmdir ${PREFIX}/share/doc/remake/$FILE"
+	else
+		COMMAND="rm -rf ${PREFIX}/share/doc/remake/$FILE"
+	fi
+	echo $COMMAND && $COMMAND
+done
+COMMAND="rmdir ${PREFIX}/share/doc/remake"
+echo $COMMAND && $COMMAND
+
+IFS=$OLD_IFS     # restore default field separator
