@@ -207,7 +207,7 @@ write_rules(){
 				echo "   WARNING: '$LINE' is not belongs to any project."
 				echo "            Skipping."
 			else
-				if [ -e "`dirname "$LINE"`" ]; then
+				if [ -d "`dirname "$LINE"`" ]; then
 					pushd "`dirname "$LINE"`" >/dev/null
 					DEPDIR=`pwd -P`
 					popd >/dev/null
