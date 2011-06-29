@@ -12,6 +12,12 @@ SCRIPT_PATH=`pwd`;
 popd  > /dev/null
 #SCRIPT_PATH=$(cd `dirname $0`; pwd)
 
+MODULES_PATH=$SCRIPT_PATH/modules
+if [ ! -d $MODULES_PATH ]; then
+	#fix path for local installation
+	MODULES_PATH=$SCRIPT_PATH/../lib/remake/modules
+fi
+
 escape()
 {
 echo "$1"| sed -e "s/ /\\\\\\ /g"
@@ -139,8 +145,8 @@ write_rules(){
 	export FORMAT
 	
 	# allow module to override format
-	if [ -f "$SCRIPT_PATH/modules/mod_$EXT" ]; then
-		FORMAT=`bash -e "$SCRIPT_PATH/modules/mod_$EXT" format`
+	if [ -f "$MODULES_PATH/mod_$EXT" ]; then
+		FORMAT=`bash -e "$MODULES_PATH/mod_$EXT" format`
 	fi
 	
 	# Looking for extra settings
@@ -183,12 +189,12 @@ write_rules(){
 	
 	
 	PENDINGTARGETS=''
-	if [ ! -f "$SCRIPT_PATH/modules/mod_$EXT" ]; then
+	if [ ! -f "$MODULES_PATH/mod_$EXT" ]; then
 		echo "   WARNING: Don't know how to handle file with $EXT extension."
 		echo "            Skipping."
 	else
-		#bash -x "$SCRIPT_PATH/modules/mod_$EXT" deps
-		RAWDEPS=`bash -e "$SCRIPT_PATH/modules/mod_$EXT" deps`
+		#bash -x "$MODULES_PATH/mod_$EXT" deps
+		RAWDEPS=`bash -e "$MODULES_PATH/mod_$EXT" deps`
 		# Removing duplicates
 		RAWDEPS=`echo "$RAWDEPS" | sort -u`
 		# Check for new render targets
@@ -280,7 +286,7 @@ write_rules(){
 			echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
 			echo "	cd `dirname "$RENDERPATH"` && make -f `basename \"${TARGET}.make\"` clean" >> "$MAKEFILE"
 		else
-			bash -e "$SCRIPT_PATH/modules/mod_$EXT" rules
+			bash -e "$MODULES_PATH/mod_$EXT" rules
 		fi
 		
 		if [[ "$2" == 'deps' ]]; then
