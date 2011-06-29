@@ -35,16 +35,21 @@ OPTIONS:
   -c <camera>   Select camera to render from (if applicable).
   -f <format>   Force output format.
   -h            Show this message.
-  -k            Keep Makefile so you can skip dependency detection and re-invoke 
-                rendering by typing 'make'.
-  -t <threads>  Specify the amount of rendering jobs to be run in parallel. 
-                Use zero for no limit.
+  -k            Keep Makefile so you can skip dependency detection 
+                and re-invoke rendering by typing 'make'.
+  -t <threads>  Specify the amount of rendering jobs to be run 
+                in parallel. Use zero for no limit.
 
 COMMANDS:
   clean         Remove all rendered footage associated with the file.
-  deps          Render all dependencies of the given file, but not the file itself.
-  snapshot      Additionally save snapshot of the current rendering as video file
-                in the 'snapshots/' subdirectory in the project tree.
+  deps          Render all dependencies of the given file, but not 
+                the file itself.
+  pack          Pack into zip file together with all dependencies.
+                Resulting file will reside the 'packs/' subdirectory
+                of the project tree.
+  snapshot      Additionally save snapshot of the current rendering 
+                as video file in the 'snapshots/' subdirectory of
+                the project tree.
   stereo        Render stereoscopic 3D (side-by-side).
 EOF
 }
@@ -297,6 +302,13 @@ write_rules(){
 		echo ".PHONY: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		
+		# Data packing
+		echo "`escape "$RENDERPATH"`-pack: $DEPS" >> "$MAKEFILE"
+		echo "	zip -ur $PACKFILE $DEPS" >> "$MAKEFILE"
+		echo "	zip -ur $PACKFILE $TARGET" >> "$MAKEFILE"
+		echo ".PHONY: `escape "$RENDERPATH"`-pack" >> "$MAKEFILE"
+		echo "pack: `escape "$RENDERPATH"`-pack" >> "$MAKEFILE"
+		
 		# Stereo rendering
 		if [[ "$2" == 'stereo' ]]; then
 			
@@ -435,6 +447,12 @@ MAKEFILE=${PROJECTROOT}/render/tmp/Makefile.$$
 [ ! -e "$MAKEFILE" ] || rm "$MAKEFILE"
 touch "$MAKEFILE"
 
+PACKFILE="packs/`basename \"$1\"`-`date +%Y%m%d-%H%M%S`.zip"
+export PACKFILE
+if [[ "$2" == 'pack' ]]; then
+	[ -d ${PROJECTROOT}/packs ] || mkdir -p ${PROJECTROOT}/packs
+fi
+
 echo
 echo "==============================================="
 echo "       First stage: Analyzing files"
@@ -443,6 +461,7 @@ echo
 
 write_rules "$1" "$2" "$OPT_FORMAT"
 echo ".PHONY: clean" >> "$MAKEFILE"
+echo ".PHONY: pack" >> "$MAKEFILE"
 
 [[ $OPT_KEEP == 0 ]] || cp -f "$MAKEFILE" Makefile
 
