@@ -34,6 +34,7 @@ if ($0~"<param name=\"canvas\" use=\".*#.*\"/>") {print $0}
 	if [ ! -z "$DEPS" ]; then
 		while read LINE; do
 			LINE=$(abspath "`pwd -P`/$LINE")
+			LINE=`python ${0}_decode_string "$LINE"`
 			#if ( echo "$LINE" | grep -E "\.sif(|z)$" ); then
 			if ! ( echo $ALLDEPS | grep -E "^$LINE$" ); then
 				echo "$LINE"

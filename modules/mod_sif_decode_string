@@ -1,0 +1,16 @@
+#!python
+
+import re, sys
+
+def _callback(matches):
+    id = matches.group(1)
+    try:
+        return unichr(int(id,16))
+    except:
+        return id
+
+def decode_unicode_references(data):
+    return re.sub("&#x(\d+)(;|(?=\s))", _callback, data)
+
+result=decode_unicode_references(sys.argv[1])
+print result.encode('utf-8')
