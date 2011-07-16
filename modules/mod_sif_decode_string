@@ -10,7 +10,7 @@ def _callback(matches):
         return id
 
 def decode_unicode_references(data):
-    return re.sub("&#x(\d+)(;|(?=\s))", _callback, data)
+    return re.sub("&#x([a-zA-Z0-9]+)(;|(?=\s))", _callback, data)
 
 result=decode_unicode_references(sys.argv[1])
 print result.encode('utf-8')
