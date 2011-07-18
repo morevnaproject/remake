@@ -23,6 +23,10 @@ escape()
 echo "$1"| sed -e "s/ /\\\\\\ /g"
 }
 
+abspath(){
+	readlink -m "$1"
+}
+
 usage()
 {
 cat << EOF
@@ -304,8 +308,12 @@ write_rules(){
 		
 		# Data packing
 		echo "`escape "$RENDERPATH"`-pack: $DEPS" >> "$MAKEFILE"
-		echo "	zip -ur $PACKFILE $DEPS" >> "$MAKEFILE"
-		echo "	zip -ur $PACKFILE $TARGET" >> "$MAKEFILE"
+		for DEP in $DEPS; do
+		DEP=$(abspath "$DEP")
+		echo "	zip -ur \"$PACKFILE\" \"$DEP\"" >> "$MAKEFILE"
+		done
+		DEP=$(abspath "$TARGET") 
+		echo "	zip -ur \"$PACKFILE\" \"$DEP\"" >> "$MAKEFILE"
 		echo ".PHONY: `escape "$RENDERPATH"`-pack" >> "$MAKEFILE"
 		echo "pack: `escape "$RENDERPATH"`-pack" >> "$MAKEFILE"
 		
@@ -447,7 +455,7 @@ MAKEFILE=${PROJECTROOT}/render/tmp/Makefile.$$
 [ ! -e "$MAKEFILE" ] || rm "$MAKEFILE"
 touch "$MAKEFILE"
 
-PACKFILE="packs/`basename \"$1\"`-`date +%Y%m%d-%H%M%S`.zip"
+PACKFILE="${PROJECTROOT}/packs/`basename \"$1\"`-`date +%Y%m%d-%H%M%S`.zip"
 export PACKFILE
 if [[ "$2" == 'pack' ]]; then
 	[ -d ${PROJECTROOT}/packs ] || mkdir -p ${PROJECTROOT}/packs
