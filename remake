@@ -137,6 +137,7 @@ write_rules(){
 	[ -e "$PROJECTROOT/.gitignore" ] || touch "$PROJECTROOT/.gitignore"
 	( cat "$PROJECTROOT/.gitignore" | egrep "render/\*" > /dev/null ) || ( echo "render/*" >> "$PROJECTROOT/.gitignore" )
 	( cat "$PROJECTROOT/.gitignore" | egrep "snapshots/\*" > /dev/null ) || ( echo "snapshots/*" >> "$PROJECTROOT/.gitignore" )
+	( cat "$PROJECTROOT/.gitignore" | egrep "packs/\*" > /dev/null ) || ( echo "packs/*" >> "$PROJECTROOT/.gitignore" )
 	
 	TARGET=$(relpath "`pwd -P`" "$PROJECTROOT/$TARGETDIR")/`basename "$1"`
 	EXT=${TARGET##*.}
