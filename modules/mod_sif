@@ -33,6 +33,18 @@ if ($0~"<param name=\"canvas\" use=\".*#.*\"/>") {print $0}
 	DEPS=$(echo -e "$DEPS" | sed -e "s/.*<string.*>\(.*\)<\/string>.*/\1/" -e "s/.*<param name=\"canvas\" use=\"\(.*\)#.*\"\/>.*/\1/p")
 	if [ ! -z "$DEPS" ]; then
 		while read LINE; do
+			
+			# Even if path to the file is wrong, synfig looks for the file with the same
+			# name in current directory, so we should treat this case.
+			if [ ! -e $LINE ]; then
+				TYPE=${LINE##*.}
+				if [[ "$TYPE" != "sif" ]]; then
+					if [ -e `basename $LINE` ]; then
+						LINE=`basename $LINE`
+					fi
+				fi
+			fi
+			
 			LINE=$(abspath "`pwd -P`/$LINE")
 			LINE=`python ${0}_decode_string "$LINE"`
 			#if ( echo "$LINE" | grep -E "\.sif(|z)$" ); then
