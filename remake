@@ -308,15 +308,10 @@ write_rules(){
 		echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		
 		# Data packing
-		echo "`escape "$RENDERPATH"`-pack: $DEPS" >> "$MAKEFILE"
 		for DEP in $DEPS; do
-		DEP=$(abspath "$DEP")
-		echo "	zip -ur \"$PACKFILE\" \"$DEP\"" >> "$MAKEFILE"
+			echo $(abspath "$DEP") >>"${PACKFILE}.lst"
 		done
-		DEP=$(abspath "$TARGET") 
-		echo "	zip -ur \"$PACKFILE\" \"$DEP\"" >> "$MAKEFILE"
-		echo ".PHONY: `escape "$RENDERPATH"`-pack" >> "$MAKEFILE"
-		echo "pack: `escape "$RENDERPATH"`-pack" >> "$MAKEFILE"
+		echo $(abspath "$TARGET") >>"${PACKFILE}.lst"
 		
 		# Stereo rendering
 		if [[ "$2" == 'stereo' ]]; then
@@ -471,6 +466,31 @@ echo
 write_rules "$1" "$2" "$OPT_FORMAT"
 echo ".PHONY: clean" >> "$MAKEFILE"
 echo ".PHONY: pack" >> "$MAKEFILE"
+
+# Processing file list for data pack
+if [[ "$2" == 'pack' ]]; then
+	# Removing duplicate lines
+	awk '!_[$0]++' "${PACKFILE}.lst"
+	# Some magic to detect common prefix
+	# (thanks to Marlon Berlin - http://awk.freeshell.org/SedFAQ#toc23)
+	PACKROOT=$(cat "${PACKFILE}.lst" | sed ':a;$!N;s/^\(.*\).*\n\1.*/\1/;ta')
+	if [[ "$PACKROOT" != */ ]]; then
+		PACKROOT=`dirname "$PACKROOT"`
+		[[ "$PACKROOT" == */ ]] || PACKROOT="${PACKROOT}/"
+	fi
+	echo "pack:" >> "$MAKEFILE"
+	echo "	cd $PACKROOT; \\" >> "$MAKEFILE"
+	# Removing common prefix from the list
+	while read LINE; do
+	echo "	zip -ur \"$PACKFILE\" \"${LINE#$PACKROOT}\"; \\" >> "$MAKEFILE"
+	done < "${PACKFILE}.lst"
+	#PACKROOT=`echo $PACKROOT| sed "s|\/|\\\\\/|g"`
+	#awk "!/$PACKROOT/{sub(".*\.","")}1" "${PACKFILE}.lst"
+	#cat "${PACKFILE}.lst"
+	#cat "${PACKFILE}.lst" | sed "s/^$PACKROOT//" > "${PACKFILE}.lst"
+	#cat "${PACKFILE}.lst"
+	rm "${PACKFILE}.lst"
+fi
 
 [[ $OPT_KEEP == 0 ]] || cp -f "$MAKEFILE" Makefile
 
