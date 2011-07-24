@@ -15,8 +15,8 @@ abspath(){
 }
 
 deps(){
-	if [ ! -z $1 ]; then 
-		TARGET=$1
+	if [ ! -z "$1" ]; then 
+		TARGET="$1"
 	fi
 	
 	echo "`abspath \"$TARGET\"`.data"
