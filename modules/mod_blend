@@ -9,57 +9,19 @@ format(){
 	echo $FORMAT
 }
 
+abspath(){
+	readlink -m "$1"
+}
+
 deps(){
+	set -x
 	if [ ! -z "$1" ]; then 
 		TARGET=$1
 	fi
 	
-	SCRIPTPATH="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.deps.py|"`"
+	SCRIPTPATH="$(abspath "${0}")_deps"
 	
-	cat > "$SCRIPTPATH" << EOF
-# print fix
-import sys
-try:
-  Print = eval("print") # python 3.0 case
-except SyntaxError:
-  try:
-    D = dict()
-    exec("from __future__ import print_function\np=print", D)
-    Print = D["p"] # 2.6 case
-    del D
-  except SyntaxError:
-    del D
-    def Print(*args, **kwd): # 2.4, 2.5, define our own Print function
-      fout = kwd.get("file", sys.stdout)
-      w = fout.write
-      if args:
-        w(str(args[0]))
-        sep = kwd.get("sep", " ")
-        for a in args[1:]:
-          w(sep)
-          w(str(a))
-      w(kwd.get("end", "\n"))
-
-try:
-	# blender 2.4x stuff
-	import Blender
-	paths = Blender.GetPaths(1)
-	for f in paths:
-		if f!="":
-			Print("dependency: %s" % f)
-except:
-	# blender 2.5x stuff
-	import bpy
-	import os.path
-	# blender 2.56 & 2.57 crashes when using "bpy.utils.blend_paths(1)", 
-	# so we forced to fallback to relative paths:
-	paths = bpy.utils.blend_paths(0)
-	for f in paths:
-		if f!="":
-			Print("dependency: %s" % os.path.abspath(bpy.path.abspath(f)))
-EOF
-	
-	blender -b "`pwd`/$TARGET" -P "`pwd`/$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
+	blender -b "`abspath $TARGET`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
 		echo $LINE
 		if ( echo $LINE | grep -E '.blend$' >/dev/null); then
 			deps "$LINE"
