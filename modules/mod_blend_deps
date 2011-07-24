@@ -26,6 +26,7 @@ except SyntaxError:
 try:
 	# blender 2.4x stuff
 	import Blender
+	import bpy
 	paths = Blender.GetPaths(1)
 	for f in paths:
 		if f!="":
@@ -39,4 +40,4 @@ except:
 	paths = bpy.utils.blend_paths(0)
 	for f in paths:
 		if f!="":
-			Print("dependency: %s" % os.path.abspath(bpy.path.abspath(f)))
+			Print("dependency: %s" % bpy.path.abspath(f))
