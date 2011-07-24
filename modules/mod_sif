@@ -34,19 +34,20 @@ if ($0~"<param name=\".*\" use=\".*#.*\"/>") {print $0}
 	if [ ! -z "$DEPS" ]; then
 		while read LINE; do
 			
+			LINE=`python ${0}_decode_string "$LINE"`
+			
 			# Even if path to the file is wrong, synfig looks for the file with the same
 			# name in current directory, so we should treat this case.
-			if [ ! -e $LINE ]; then
+			if [ ! -e "$LINE" ]; then
 				TYPE=${LINE##*.}
 				if [[ "$TYPE" != "sif" ]]; then
-					if [ -e `basename $LINE` ]; then
-						LINE=`basename $LINE`
+					if [ -e "`basename \"$LINE\"`" ]; then
+						LINE=`basename "$LINE"`
 					fi
 				fi
 			fi
 			
 			LINE=$(abspath "`pwd -P`/$LINE")
-			LINE=`python ${0}_decode_string "$LINE"`
 			#if ( echo "$LINE" | grep -E "\.sif(|z)$" ); then
 			if ! ( echo $ALLDEPS | grep -E "^$LINE$" ); then
 				echo "$LINE"
