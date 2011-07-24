@@ -14,7 +14,6 @@ abspath(){
 }
 
 deps(){
-	set -x
 	if [ ! -z "$1" ]; then 
 		TARGET=$1
 	fi
