@@ -132,6 +132,8 @@ write_rules(){
 	popd  >/dev/null
 	
 	CONFIGPATH=$(relpath "`pwd -P`" "$PROJECTROOT/remake.conf")
+	# Data packing
+	echo "${PROJECTROOT}/remake.conf" >>"${PACKFILE}.lst"
 	
 	# Ensure that render dir ignored by git
 	[ -e "$PROJECTROOT/.gitignore" ] || touch "$PROJECTROOT/.gitignore"
@@ -163,6 +165,8 @@ write_rules(){
 	if [ -e "${TARGET}.conf" ]; then
 		. "${TARGET}.conf"
 		DEPS="$DEPS `escape "${TARGET}.conf"`"
+		# Data packing
+		echo $(abspath "${TARGET}.conf") >>"${PACKFILE}.lst"
 	fi
 	
 	# Format can be overriden by commandline option
@@ -222,6 +226,10 @@ write_rules(){
 				echo "   $LINE"
 				echo "   WARNING: '$LINE' is not belongs to any project."
 				echo "            Skipping."
+				# Data packing
+				if [ -e "$LINE" ]; then
+					echo $(abspath "$LINE") >>"${PACKFILE}.lst"
+				fi
 			else
 				if [ -d "`dirname "$LINE"`" ]; then
 					pushd "`dirname "$LINE"`" >/dev/null
@@ -281,6 +289,8 @@ write_rules(){
 						#DEPS="$DEPS $(relpath `pwd` $DEPDIR)/`basename $LINE`"
 						#LINE=`echo "$LINE"| sed -e "s/ /\\\\\\ /g"`
 						DEPS="$DEPS `escape "$LINE"`"
+						# Data packing
+						echo $(abspath "$LINE") >>"${PACKFILE}.lst"
 					fi
 				fi
 			fi
@@ -308,9 +318,6 @@ write_rules(){
 		echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
 		
 		# Data packing
-		for DEP in $DEPS; do
-			echo $(abspath "$DEP") >>"${PACKFILE}.lst"
-		done
 		echo $(abspath "$TARGET") >>"${PACKFILE}.lst"
 		
 		# Stereo rendering
@@ -453,9 +460,7 @@ touch "$MAKEFILE"
 
 PACKFILE="${PROJECTROOT}/packs/`basename \"$1\"`-`date +%Y%m%d-%H%M%S`.zip"
 export PACKFILE
-if [[ "$2" == 'pack' ]]; then
-	[ -d ${PROJECTROOT}/packs ] || mkdir -p ${PROJECTROOT}/packs
-fi
+[ -d ${PROJECTROOT}/packs ] || mkdir -p ${PROJECTROOT}/packs
 
 echo
 echo "==============================================="
@@ -470,7 +475,8 @@ echo ".PHONY: pack" >> "$MAKEFILE"
 # Processing file list for data pack
 if [[ "$2" == 'pack' ]]; then
 	# Removing duplicate lines
-	awk '!_[$0]++' "${PACKFILE}.lst"
+	sort "${PACKFILE}.lst" | uniq > "${PACKFILE}.lst2"
+	
 	# Some magic to detect common prefix
 	# (thanks to Marlon Berlin - http://awk.freeshell.org/SedFAQ#toc23)
 	PACKROOT=$(cat "${PACKFILE}.lst" | sed ':a;$!N;s/^\(.*\).*\n\1.*/\1/;ta')
@@ -478,18 +484,15 @@ if [[ "$2" == 'pack' ]]; then
 		PACKROOT=`dirname "$PACKROOT"`
 		[[ "$PACKROOT" == */ ]] || PACKROOT="${PACKROOT}/"
 	fi
-	echo "pack:" >> "$MAKEFILE"
-	echo "	cd $PACKROOT; \\" >> "$MAKEFILE"
+	
 	# Removing common prefix from the list
-	while read LINE; do
-	echo "	zip -ur \"$PACKFILE\" \"${LINE#$PACKROOT}\"; \\" >> "$MAKEFILE"
-	done < "${PACKFILE}.lst"
-	#PACKROOT=`echo $PACKROOT| sed "s|\/|\\\\\/|g"`
-	#awk "!/$PACKROOT/{sub(".*\.","")}1" "${PACKFILE}.lst"
-	#cat "${PACKFILE}.lst"
-	#cat "${PACKFILE}.lst" | sed "s/^$PACKROOT//" > "${PACKFILE}.lst"
-	#cat "${PACKFILE}.lst"
 	rm "${PACKFILE}.lst"
+	while read LINE; do
+		echo ${LINE#$PACKROOT} >> "${PACKFILE}.lst"
+	done < "${PACKFILE}.lst2"
+	
+	echo "pack:" >> "$MAKEFILE"
+	echo "	cd $PACKROOT; cat ${PACKFILE}.lst | zip -ur \"$PACKFILE\" -@" >> "$MAKEFILE"
 fi
 
 [[ $OPT_KEEP == 0 ]] || cp -f "$MAKEFILE" Makefile
@@ -503,3 +506,5 @@ echo
 echo "Running make..."
 make -f "$MAKEFILE" -j $THREADS $2
 rm -f "$MAKEFILE"
+[ ! -e "${PACKFILE}.lst" ] || rm "${PACKFILE}.lst"
+[ ! -e "${PACKFILE}.lst2" ] || rm "${PACKFILE}.lst2"
