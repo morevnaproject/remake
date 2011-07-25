@@ -1,31 +1,13 @@
 #!/bin/bash
 
+# ==== Utility functions ====
 escape()
 {
 echo "$1"| sed -e "s/ /\\\\\\ /g"
 }
 
-format(){
-	echo $FORMAT
-}
-
 abspath(){
 	readlink -m "$1"
-}
-
-deps(){
-	if [ ! -z "$1" ]; then 
-		TARGET=$1
-	fi
-	
-	SCRIPTPATH="$(abspath "${0}")_deps"
-	
-	blender -b "`abspath $TARGET`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
-		echo $LINE
-		if ( echo $LINE | grep -E '.blend$' >/dev/null); then
-			deps "$LINE"
-		fi
-	done
 }
 
 renderscript(){
@@ -179,6 +161,34 @@ if __name__ == '__main__':
 EOF
 }
 
+# ==== Module functions ====
+
+format(){
+	echo $FORMAT
+}
+
+check(){
+	if ! ( which blender > /dev/null 2>&1 ); then
+		echo "   FATAL: Can't find 'blender' binary!" >&2
+		exit 1
+	fi
+}
+
+deps(){
+	if [ ! -z "$1" ]; then 
+		TARGET=$1
+	fi
+	
+	SCRIPTPATH="$(abspath "${0}")_deps"
+	
+	blender -b "`abspath $TARGET`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
+		echo $LINE
+		if ( echo $LINE | grep -E '.blend$' >/dev/null); then
+			deps "$LINE"
+		fi
+	done
+}
+
 rules(){
 	OSA="True"
 	
@@ -224,10 +234,5 @@ rules(){
 	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
 	echo "	rm -rf \"$RENDERSCRIPT\"" >> "$MAKEFILE"
 }
-
-if ! ( which blender > /dev/null 2>&1 ); then
-	echo "   FATAL: Can't find 'blender' binary!" >&2
-	exit 1
-fi
 
 $1 "$2"
