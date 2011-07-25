@@ -27,6 +27,10 @@ if ($0~"<param name=\"filename\">") {x=1}
 if (x==1) {
 	if ($0~"<string.*>.*</string>") {print $0}
 }
+if ($0~"<param name=\"family\">") {x=1}
+if (x==1) {
+	if ($0~"<string.*>.*</string>") {print $0}
+}
 if ($0~"</param>") {x=0}
 if ($0~"<param name=\".*\" use=\".*#.*\"/>") {print $0}
 }')
