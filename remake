@@ -156,9 +156,16 @@ write_rules(){
 	
 	export FORMAT
 	
-	# allow module to override format
 	if [ -f "$MODULES_PATH/mod_$EXT" ]; then
+		# give module a chance to override format
 		FORMAT=`bash -e "$MODULES_PATH/mod_$EXT" format`
+		
+		# check module requirements
+		if [ ! -e "${PROJECTROOT}/render/tmp/modules_check/mod_$EXT" ]; then
+			bash -e "$MODULES_PATH/mod_$EXT" check
+			[ -d "${PROJECTROOT}/render/tmp/modules_check" ] || mkdir "${PROJECTROOT}/render/tmp/modules_check"
+			touch "${PROJECTROOT}/render/tmp/modules_check/mod_$EXT"
+		fi
 	fi
 	
 	# Looking for extra settings
@@ -457,6 +464,9 @@ PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 MAKEFILE=${PROJECTROOT}/render/tmp/Makefile.$$
 [ ! -e "$MAKEFILE" ] || rm "$MAKEFILE"
 touch "$MAKEFILE"
+
+# Remove modules check flags
+rm -rf "${PROJECTROOT}/render/tmp/modules_check" || true
 
 PACKFILE="${PROJECTROOT}/packs/`basename \"$1\"`-`date +%Y%m%d-%H%M%S`.zip"
 export PACKFILE
