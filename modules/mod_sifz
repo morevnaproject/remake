@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# ==== Module functions ====
+
 SIF_MODULE="`dirname $0`/mod_sif"
 
 export WIDTH
@@ -13,6 +15,13 @@ export TARGET
 export RENDERPATH
 
 export MAKEFILE
+
+check(){
+	if ! ( which synfig > /dev/null 2>&1 ); then
+		echo "   FATAL: Can't find 'synfig' binary!" >&2
+		exit 1
+	fi
+}
 
 format(){
 	echo $FORMAT
@@ -28,10 +37,5 @@ deps(){
 rules(){
 	bash -e $SIF_MODULE rules
 }
-
-if ! ( which synfig > /dev/null 2>&1 ); then
-	echo "   FATAL: Can't find 'synfig' binary!" >&2
-	exit 1
-fi
 
 $1 "$2"

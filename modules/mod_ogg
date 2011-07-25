@@ -1,8 +1,19 @@
 #!/bin/bash
 
+# ==== Utility functions ====
+
 escape()
 {
 echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
+
+# ==== Module functions ====
+
+check(){
+	if ! ( which oggdec > /dev/null 2>&1 ); then
+		echo "   FATAL: Can't find 'oggdec' binary!" >&2
+		exit 1
+	fi
 }
 
 format(){
@@ -24,10 +35,5 @@ EOF
 	echo "`escape "$RENDERPATH-clean:"`" >> "$MAKEFILE"
 	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
 }
-
-if ! ( which oggdec > /dev/null 2>&1 ); then
-	echo "   FATAL: Can't find 'oggdec' binary!" >&2
-	exit 1
-fi
 
 $1 "$2"

@@ -1,8 +1,35 @@
 #!/bin/bash
 
+# ==== Utility functions ====
+
 escape()
 {
 echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
+
+# ==== Module functions ====
+
+check(){
+	export PENCILBIN=''
+	if ( which pencil > /dev/null 2>&1 ); then
+		PENCILBIN='pencil'
+	elif ( which Pencil > /dev/null 2>&1 ); then
+		PENCILBIN='Pencil'
+	else
+		echo "   FATAL: Can't find 'pencil' binary!" >&2
+		exit 1
+	fi
+
+	# Magic to check if pencil have required patches
+	DISPLAY=cumba:woomba:0.x $PENCILBIN | grep "(Morevna Branch" >/dev/null
+	PENCIL_VERSION=`echo $?`
+	if [[ $PENCIL_VERSION == 1 ]] ; then
+		echo "   FATAL: This version of Pencil doesn't supports commandline options!"
+		echo "          Please get modified version from any of the following urls:"
+		echo "           * Source: http://github.com/morevnaproject/pencil"
+		echo "           * Binaries: http://morevnaproject.org/packages"
+		exit 1
+	fi
 }
 
 format(){
@@ -53,26 +80,5 @@ rules(){
 		echo "	rm -f \"$RENDERPATH\"" >> "$MAKEFILE"
 	fi
 }
-
-export PENCILBIN=''
-if ( which pencil > /dev/null 2>&1 ); then
-	PENCILBIN='pencil'
-elif ( which Pencil > /dev/null 2>&1 ); then
-	PENCILBIN='Pencil'
-else
-	echo "   FATAL: Can't find 'pencil' binary!" >&2
-	exit 1
-fi
-
-# Magic to check if pencil have required patches
-DISPLAY=cumba:woomba:0.x $PENCILBIN | grep "(Morevna Branch" >/dev/null
-PENCIL_VERSION=`echo $?`
-if [[ $PENCIL_VERSION == 1 ]] ; then
-	echo "   FATAL: This version of Pencil doesn't supports commandline options!"
-	echo "          Please get modified version from any of the following urls:"
-	echo "           * Source: http://github.com/morevnaproject/pencil"
-	echo "           * Binaries: http://morevnaproject.org/packages"
-	exit 1
-fi
 
 $1 "$2"

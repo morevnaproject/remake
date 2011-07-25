@@ -1,8 +1,25 @@
 #!/bin/bash
 
+# ==== Utility functions ====
+
 escape()
 {
 echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
+
+# ==== Module functions ====
+
+check(){
+	if ! ( which synfig > /dev/null 2>&1 ); then
+		echo "   FATAL: Can't find 'synfig' binary!" >&2
+		exit 1
+	fi
+	if [[ $FORMAT == 'mpg' ]]; then
+		if ! ( which ffmpeg > /dev/null 2>&1 ); then
+			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+			exit 1
+		fi
+	fi
 }
 
 format(){
@@ -91,10 +108,6 @@ deps(){
 
 rules(){
 	if [[ $FORMAT == 'mpg' ]]; then
-		if ! ( which ffmpeg > /dev/null 2>&1 ); then
-			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
-			exit 1
-		fi
 		RENDERPATH_BASE="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$||"`"
 		echo "`escape "$RENDERPATH"`: `escape "${RENDERPATH_BASE}.png"`/file.lst" >> "$MAKEFILE"
 		echo "	ffmpeg -y -i \"${RENDERPATH_BASE}.png/file.%04d.png\" -sameq -r $FPS \"${RENDERPATH}\"" >> "$MAKEFILE"
@@ -133,10 +146,5 @@ rules(){
 		echo "	rm -f \"$RENDERPATH\"" >> "$MAKEFILE"
 	fi
 }
-
-if ! ( which synfig > /dev/null 2>&1 ); then
-	echo "   FATAL: Can't find 'synfig' binary!" >&2
-	exit 1
-fi
 
 $1 "$2"
