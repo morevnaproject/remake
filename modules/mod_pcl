@@ -10,16 +10,11 @@ echo "$1"| sed -e "s/ /\\\\\\ /g"
 # ==== Module functions ====
 
 check(){
-	export PENCILBIN=''
-	if ( which pencil > /dev/null 2>&1 ); then
-		PENCILBIN='pencil'
-	elif ( which Pencil > /dev/null 2>&1 ); then
-		PENCILBIN='Pencil'
-	else
+	if [ -z "$PENCILBIN" ]; then
 		echo "   FATAL: Can't find 'pencil' binary!" >&2
 		exit 1
 	fi
-
+	
 	# Magic to check if pencil have required patches
 	DISPLAY=cumba:woomba:0.x $PENCILBIN | grep "(Morevna Branch" >/dev/null
 	PENCIL_VERSION=`echo $?`
@@ -80,5 +75,12 @@ rules(){
 		echo "	rm -f \"$RENDERPATH\"" >> "$MAKEFILE"
 	fi
 }
+
+export PENCILBIN=''
+if ( which pencil > /dev/null 2>&1 ); then
+	PENCILBIN='pencil'
+elif ( which Pencil > /dev/null 2>&1 ); then
+	PENCILBIN='Pencil'
+fi
 
 $1 "$2"
