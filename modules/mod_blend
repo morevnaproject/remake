@@ -242,10 +242,17 @@ check(){
 	
 	# Check if we have preferred version for the project
 	if [ ! -z "$BLENDER_VERSION" ]; then
-		if [[ "${BLENDER_VERSION_FOUND:0:3}" != "${BLENDER_VERSION:0:3}" ]]; then
+		# Get rid of "x" in 2.4x form
+		BLENDER_VERSION=${BLENDER_VERSION%x*}
+		BLENDER_VERSION=${BLENDER_VERSION:0:4}
+		if [[ `echo $BLENDER_VERSION | wc -m ` == 4 ]]; then
+			BLENDER_VERSION_FOUND=${BLENDER_VERSION_FOUND:0:3}
+		fi
+		
+		if [[ "${BLENDER_VERSION_FOUND}" != "${BLENDER_VERSION}" ]]; then
 			echo
 			cat << EOF
-   ERROR: This project requires Blender ${BLENDER_VERSION:0:3}x.
+   ERROR: This project requires Blender ${BLENDER_VERSION}.
           Please install appropriate version of Blender.
 
 EOF
@@ -253,6 +260,8 @@ EOF
 				info_blender_get24
 			elif [[ ${BLENDER_VERSION:0:3} == '2.5' ]]; then
 				info_blender_get25
+			else
+				info_blender_get
 			fi
 			info_blender_path
 			cat <<EOF
