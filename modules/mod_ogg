@@ -12,6 +12,12 @@ echo "$1"| sed -e "s/ /\\\\\\ /g"
 check(){
 	if ! ( which oggdec > /dev/null 2>&1 ); then
 		echo "   FATAL: Can't find 'oggdec' binary!" >&2
+		cat <<EOF
+   FATAL: Can't find 'oggdec' binary!
+   
+          Please install 'vorbis-tools' package using software manager
+          of your linux distributive.
+EOF
 		exit 1
 	fi
 }

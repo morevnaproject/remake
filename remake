@@ -2,6 +2,19 @@
 
 set -e
 
+# First check required software
+if ! ( which make > /dev/null 2>&1 ); then
+	cat <<EOF
+   FATAL: Can't find 'make' binary!
+   
+          Please install 'make' package using software manager of 
+          your linux distributive.
+EOF
+	exit 1
+fi
+
+# Then initialize basic variables
+
 SCRIPT_PATH="${BASH_SOURCE[0]}";
 if([ -h "${SCRIPT_PATH}" ]) then
   while([ -h "${SCRIPT_PATH}" ]) do SCRIPT_PATH=`readlink "${SCRIPT_PATH}"`; done

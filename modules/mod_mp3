@@ -11,7 +11,12 @@ echo "$1"| sed -e "s/ /\\\\\\ /g"
 
 check(){
 	if ! ( which mpg123 > /dev/null 2>&1 ); then
-		echo "   FATAL: Can't find 'mpg123' binary!" >&2
+		cat <<EOF
+   FATAL: Can't find 'mpg123' binary!
+   
+          Please install 'mpg123' package using software manager of 
+          your linux distributive.
+EOF
 		exit 1
 	fi
 }

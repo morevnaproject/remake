@@ -11,12 +11,22 @@ echo "$1"| sed -e "s/ /\\\\\\ /g"
 
 check(){
 	if ! ( which synfig > /dev/null 2>&1 ); then
-		echo "   FATAL: Can't find 'synfig' binary!" >&2
+		cat <<EOF
+   FATAL: Can't find 'synfig' binary!
+   
+          You can get latest Synfig Studio packages here:
+            * http://synfig.org/cms/en/download/
+EOF
 		exit 1
 	fi
 	if [[ $FORMAT == 'mpg' ]]; then
 		if ! ( which ffmpeg > /dev/null 2>&1 ); then
-			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+			cat <<EOF
+   FATAL: Can't find 'ffmpeg' binary!
+   
+          Please install 'ffmpeg' package using software manager of 
+          your linux distributive.
+EOF
 			exit 1
 		fi
 	fi

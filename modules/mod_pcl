@@ -7,11 +7,22 @@ escape()
 echo "$1"| sed -e "s/ /\\\\\\ /g"
 }
 
+info_pencil_get()
+{
+	cat << EOF
+          Please get modified version of Pencil from any of the 
+          following urls:
+            * Source: http://github.com/morevnaproject/pencil
+            * Binaries: http://morevnaproject.org/packages#pencil
+EOF
+}
 # ==== Module functions ====
 
 check(){
 	if [ -z "$PENCILBIN" ]; then
 		echo "   FATAL: Can't find 'pencil' binary!" >&2
+		echo
+		info_pencil_get
 		exit 1
 	fi
 	
@@ -19,10 +30,11 @@ check(){
 	DISPLAY=cumba:woomba:0.x $PENCILBIN | grep "(Morevna Branch" >/dev/null
 	PENCIL_VERSION=`echo $?`
 	if [[ $PENCIL_VERSION == 1 ]] ; then
-		echo "   FATAL: This version of Pencil doesn't supports commandline options!"
-		echo "          Please get modified version from any of the following urls:"
-		echo "           * Source: http://github.com/morevnaproject/pencil"
-		echo "           * Binaries: http://morevnaproject.org/packages"
+		cat <<EOF
+   FATAL: This version of Pencil doesn't supports commandline options!
+EOF
+		echo
+		info_pencil_get
 		exit 1
 	fi
 }
@@ -47,7 +59,12 @@ deps(){
 rules(){
 	if [[ $FORMAT == 'mpg' ]]; then
 		if ! ( which ffmpeg > /dev/null 2>&1 ); then
-			echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
+			cat <<EOF
+   FATAL: Can't find 'ffmpeg' binary!
+   
+          Please install 'ffmpeg' package using software manager of 
+          your linux distributive.
+EOF
 			exit 1
 		fi
 		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
