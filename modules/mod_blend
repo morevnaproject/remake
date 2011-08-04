@@ -178,21 +178,10 @@ EOF
 }
 
 info_blender_get(){
-	if [[ ${BLENDER_VERSION_FOUND:0:3} == '2.4' ]]; then
-	cat << EOF
-          You can get prebuilt Blender packages from the following 
-          sources:
-            * http://download.blender.org/release/Blender2.49b/
-            * http://morevnaproject.org/packages/#blender
-
-EOF
-	elif [[ ${BLENDER_VERSION_FOUND:0:3} == '2.5' ]]; then
-	cat << EOF
-          You can get prebuilt Blender packages from the following 
-          source:
-            * http://www.blender.org/download/get-blender/
-
-EOF
+	if [[ ${BLENDER_VERSION:0:3} == '2.4' ]]; then
+		info_blender_get24
+	elif [[ ${BLENDER_VERSION:0:3} == '2.5' ]]; then
+		info_blender_get25
 	else
 	cat << EOF
           You can get prebuilt Blender packages from the following 
@@ -204,6 +193,24 @@ EOF
 	fi
 }
 
+info_blender_get24(){
+	cat << EOF
+          You can get prebuilt Blender packages from the following 
+          sources:
+            * http://download.blender.org/release/Blender2.49b/
+            * http://morevnaproject.org/packages/#blender
+
+EOF
+}
+info_blender_get25(){
+	cat << EOF
+          You can get prebuilt Blender packages from the following 
+          source:
+            * http://www.blender.org/download/get-blender/
+
+EOF
+}
+
 # ==== Module functions ====
 
 format(){
@@ -211,21 +218,52 @@ format(){
 }
 
 check(){
+	# Re-reading config to get BLENDER_VERSION if available
+	. "$PROJECTROOT/remake.conf"
+	
 	# Check for Blender binary
 	if ! ( which blender > /dev/null 2>&1 ); then
 		echo "   FATAL: Can't find 'blender' binary!" >&2
 		echo
+		if [ ! -z "$BLENDER_VERSION" ]; then
+			echo "          This project requires Blender ${BLENDER_VERSION:0:3}x."
+		fi
 		info_blender_get
 		info_blender_path
 		exit 1
 	fi
-	
-	# TODO: Check for Blender version
-	export BLENDER_VERSION_FOUND
-	
-	# Print information about Blender
 	echo "   Blender binary found: `which blender`"
-	#echo "   Blender version: $BLENDER_VERSION_FOUND"
+	
+	# Check for Blender version
+	BLENDER_VERSION_FOUND=`blender --version`
+	BLENDER_VERSION_FOUND=${BLENDER_VERSION_FOUND:8:4}
+	export BLENDER_VERSION_FOUND
+	echo "   Blender version: $BLENDER_VERSION_FOUND"
+	
+	# Check if we have preferred version for the project
+	if [ ! -z "$BLENDER_VERSION" ]; then
+		if [[ "${BLENDER_VERSION_FOUND:0:3}" != "${BLENDER_VERSION:0:3}" ]]; then
+			echo
+			cat << EOF
+   ERROR: This project requires Blender ${BLENDER_VERSION:0:3}x.
+          Please install appropriate version of Blender.
+
+EOF
+			if [[ ${BLENDER_VERSION:0:3} == '2.4' ]]; then
+				info_blender_get24
+			elif [[ ${BLENDER_VERSION:0:3} == '2.5' ]]; then
+				info_blender_get25
+			fi
+			info_blender_path
+			cat <<EOF
+          If you still want to use different version of Blender, you 
+          should edit value of BLENDER_VERSION variable in remake.conf
+          file of your project.
+          
+EOF
+			exit 1
+		fi
+	fi
 	
 	# Check for FFMPEG support compiled in
 	OSA="True"
@@ -302,7 +340,7 @@ rules(){
 		OUTPUT="\`pwd\`/${RENDERPATH}-######"
 		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
-		echo "	blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 0 -F $BLENDERFORMAT -t 0 $RANGE | grep -E '^Saved: '" >> "$MAKEFILE"
+		echo "	blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 0 -F $BLENDERFORMAT -t 0 $RANGE 2>&1 | grep -E '^Saved: '" >> "$MAKEFILE"
 		echo "	mv \"${RENDERPATH}-`printf %06d $SINGLE`\" \"$RENDERPATH\"" >> "$MAKEFILE"
 	else
 		RANGE="-a"
@@ -320,7 +358,7 @@ rules(){
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
 			echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
 		fi
-		echo "	-blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 1 -F $BLENDERFORMAT -t 0 $RANGE | grep -E '^Saved: '" >> "$MAKEFILE"
+		echo "	-blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 1 -F $BLENDERFORMAT -t 0 $RANGE 2>&1 | grep -E '^Saved: '" >> "$MAKEFILE"
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
 			echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
 			echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
