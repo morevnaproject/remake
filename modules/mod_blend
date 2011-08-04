@@ -250,7 +250,25 @@ EOF
 	rm -f "$OUTPUT"
 	
 	
-	# TODO: Check for Audio RAM dependency bug
+	# Check for Audio RAM dependency bug
+	DEPS=`deps "$TESTDATA_PATH/blender-ffmpeg-and-audio-hd.blend" | egrep "test.wav" || true`
+	if [ -z "$DEPS" ]; then
+		echo "   Audio RAM bug: Yes"
+		echo
+		cat << EOF
+   WARNING! You are using Blender 2.4x which have an important bug - 
+            if your blend file have audio file imported as "Audio HD",
+            then it will not be detected as dependency. Be aware that
+            this can lead to some problems. For example, if you use 
+            'pack' function of Remake, those files will not be 
+            included into pack and you have to add them to archive 
+            manually.
+EOF
+		echo
+		sleep 1
+	else
+		echo "   Audio RAM bug: No"
+	fi
 }
 
 deps(){
