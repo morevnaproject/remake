@@ -18,6 +18,13 @@ if [ ! -d $MODULES_PATH ]; then
 	MODULES_PATH=$SCRIPT_PATH/../lib/remake/modules
 fi
 
+TESTDATA_PATH=$SCRIPT_PATH/tests
+if [ ! -d $TESTDATA_PATH ]; then
+	#fix path for local installation
+	TESTDATA_PATH=$SCRIPT_PATH/../share/remake/tests
+fi
+export TESTDATA_PATH
+
 escape()
 {
 echo "$1"| sed -e "s/ /\\\\\\ /g"
@@ -156,18 +163,6 @@ write_rules(){
 	
 	export FORMAT
 	
-	if [ -f "$MODULES_PATH/mod_$EXT" ]; then
-		# give module a chance to override format
-		FORMAT=`bash -e "$MODULES_PATH/mod_$EXT" format`
-		
-		# check module requirements
-		if [ ! -e "${PROJECTROOT}/render/tmp/modules_check/mod_$EXT" ]; then
-			bash -e "$MODULES_PATH/mod_$EXT" check
-			[ -d "${PROJECTROOT}/render/tmp/modules_check" ] || mkdir "${PROJECTROOT}/render/tmp/modules_check"
-			touch "${PROJECTROOT}/render/tmp/modules_check/mod_$EXT"
-		fi
-	fi
-	
 	# Looking for extra settings
 	if [ -e "${TARGET}.conf" ]; then
 		. "${TARGET}.conf"
@@ -205,8 +200,25 @@ write_rules(){
 	
 	export TARGET
 	export RENDERPATH
+	export PROJECTROOT
 	
 	export MAKEFILE
+	
+	echo
+	if [ -f "$MODULES_PATH/mod_$EXT" ]; then
+		# give module a chance to override format
+		FORMAT=`bash -e "$MODULES_PATH/mod_$EXT" format`
+		
+		# check module requirements
+		if [ ! -e "${CHECK_PATH}/mod_$EXT" ]; then
+			echo "Checking mod_$EXT dependencies..."
+			bash -e "$MODULES_PATH/mod_$EXT" check
+			[ -d "${CHECK_PATH}" ] || mkdir "${CHECK_PATH}"
+			touch "${CHECK_PATH}/mod_$EXT"
+			echo "   Successfull."
+			echo
+		fi
+	fi
 	
 	
 	PENDINGTARGETS=''
@@ -460,13 +472,13 @@ fi
 
 PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 
+CHECK_PATH="${PROJECTROOT}/render/tmp/check.$$"
+export CHECK_PATH
+
 [ -d "${PROJECTROOT}/render/tmp" ] || mkdir -p "${PROJECTROOT}/render/tmp"
 MAKEFILE=${PROJECTROOT}/render/tmp/Makefile.$$
 [ ! -e "$MAKEFILE" ] || rm "$MAKEFILE"
 touch "$MAKEFILE"
-
-# Remove modules check flags
-rm -rf "${PROJECTROOT}/render/tmp/modules_check" || true
 
 PACKFILE="${PROJECTROOT}/packs/`basename \"$1\"`-`date +%Y%m%d-%H%M%S`.zip"
 export PACKFILE
@@ -515,6 +527,9 @@ echo
 
 echo "Running make..."
 make -f "$MAKEFILE" -j $THREADS $2
+# Cleanup
 rm -f "$MAKEFILE"
 [ ! -e "${PACKFILE}.lst" ] || rm "${PACKFILE}.lst"
 [ ! -e "${PACKFILE}.lst2" ] || rm "${PACKFILE}.lst2"
+# Remove modules check flags
+rm -rf "${PROJECTROOT}/render/tmp/modules_check" || true
