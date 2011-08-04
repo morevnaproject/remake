@@ -6,7 +6,7 @@ SCRIPT_PATH=$(cd `dirname $0`; pwd)
 
 BINARY_FILES="remake"
 LIB_FILES=`find modules`
-DATA_FILES=`find project`
+DATA_FILES=`find project tests -path 'project/render*' -prune -o -path 'project/packs*' -prune -o -print`
 DOC_FILES="LICENSE README"
 
 PREFIX="/usr/local"
