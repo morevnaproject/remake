@@ -176,6 +176,11 @@ write_rules(){
 	
 	export FORMAT
 	
+	# give module a chance to override format
+	if [ -f "$MODULES_PATH/mod_$EXT" ]; then
+		FORMAT=`bash -e "$MODULES_PATH/mod_$EXT" format`
+	fi
+	
 	# Looking for extra settings
 	if [ -e "${TARGET}.conf" ]; then
 		. "${TARGET}.conf"
@@ -206,7 +211,6 @@ write_rules(){
 	
 	export WIDTH
 	export HEIGHT
-	export FORMAT
 	export FPS
 	export SINGLE
 	export UPDATE
@@ -217,11 +221,8 @@ write_rules(){
 	
 	export MAKEFILE
 	
+	# check module requirements
 	if [ -f "$MODULES_PATH/mod_$EXT" ]; then
-		# give module a chance to override format
-		FORMAT=`bash -e "$MODULES_PATH/mod_$EXT" format`
-		
-		# check module requirements
 		if [ ! -e "${CHECK_PATH}/mod_$EXT" ]; then
 			echo
 			echo "Checking mod_$EXT dependencies..."
