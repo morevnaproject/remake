@@ -14,7 +14,13 @@ When managing animation project with "Remake" you don't need to keep rendered fo
 
 If you are about to start your own animation project with mentioned open-source tools (or already have one) it is good idea to try "Remake".
 
-Currently "Remake" is used in production by the Morevna Project (http://morevnaproject.org/).
+== Examples of usage ==
+1.  Morevna Project
+     Homepage: http://morevnaproject.org/
+     Sources:  Not available yet
+2.  The Adventures of Boris Munchausen
+     Homepage: http://munchausenproject.wordpress.com/
+     Sources:  http://github.com/morevnaproject/munchausen
 
 == Requirements ==
 The requirements for "Remake" are:
