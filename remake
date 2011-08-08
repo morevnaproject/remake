@@ -545,4 +545,4 @@ rm -f "$MAKEFILE"
 [ ! -e "${PACKFILE}.lst" ] || rm "${PACKFILE}.lst"
 [ ! -e "${PACKFILE}.lst2" ] || rm "${PACKFILE}.lst2"
 # Remove modules check flags
-rm -rf "${PROJECTROOT}/render/tmp/modules_check" || true
+rm -rf "${CHECK_PATH}" || true
