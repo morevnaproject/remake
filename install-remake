@@ -4,7 +4,7 @@ set -e
 
 SCRIPT_PATH=$(cd `dirname $0`; pwd)
 
-BINARY_FILES="remake"
+BINARY_FILES="remake remake-gui"
 LIB_FILES=`find modules`
 DATA_FILES=`find project tests -path 'project/render*' -prune -o -path 'project/packs*' -prune -o -print`
 DOC_FILES="LICENSE README"
@@ -54,4 +54,11 @@ do
 	[ -d $FILE ] || ( echo $COMMAND && $COMMAND )
 done
 
+# Desktop data
+COMMAND="install -D -m 644 remake.desktop ${PREFIX}/share/applications/remake.desktop"
+echo $COMMAND && $COMMAND
+update-desktop-database || true
+
 IFS=$OLD_IFS     # restore default field separator
+
+echo "Done."
