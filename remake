@@ -26,13 +26,13 @@ popd  > /dev/null
 #SCRIPT_PATH=$(cd `dirname $0`; pwd)
 
 MODULES_PATH=$SCRIPT_PATH/modules
-if [ ! -d $MODULES_PATH ]; then
+if [ ! -d "$MODULES_PATH" ]; then
 	#fix path for local installation
 	MODULES_PATH=$SCRIPT_PATH/../lib/remake/modules
 fi
 
 TESTDATA_PATH=$SCRIPT_PATH/tests
-if [ ! -d $TESTDATA_PATH ]; then
+if [ ! -d "$TESTDATA_PATH" ]; then
 	#fix path for local installation
 	TESTDATA_PATH=$SCRIPT_PATH/../share/remake/tests
 fi
@@ -268,7 +268,7 @@ write_rules(){
 				DIR=`dirname "$DIR"`
 			fi
 			EXTPROJECTROOT=`get_project_root "$DIR"`
-			if [[ $EXTPROJECTROOT == "" ]]; then
+			if [[ "$EXTPROJECTROOT" == "" ]]; then
 				# Report files outside of the repo
 				echo "   $LINE"
 				echo "   WARNING: '$LINE' is not belongs to any project."
@@ -380,8 +380,8 @@ write_rules(){
 			echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
 			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
 			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
-			echo "	bash $SCRIPT_PATH/`basename $0` -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-			echo "	bash $SCRIPT_PATH/`basename $0` -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+			echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+			echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 			echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
 			echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
 			echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
@@ -510,7 +510,7 @@ touch "$MAKEFILE"
 
 PACKFILE="${PROJECTROOT}/packs/`basename \"$1\"`-`date +%Y%m%d-%H%M%S`.zip"
 export PACKFILE
-[ -d ${PROJECTROOT}/packs ] || mkdir -p ${PROJECTROOT}/packs
+[ -d "${PROJECTROOT}/packs" ] || mkdir -p "${PROJECTROOT}/packs"
 
 echo
 echo "==============================================="
@@ -542,7 +542,7 @@ if [[ "$2" == 'pack' ]]; then
 	done < "${PACKFILE}.lst2"
 	
 	echo "pack:" >> "$MAKEFILE"
-	echo "	cd $PACKROOT; cat \"${PACKFILE}.lst\" | zip -ur \"$PACKFILE\" -@" >> "$MAKEFILE"
+	echo "	cd \"$PACKROOT\"; cat \"${PACKFILE}.lst\" | zip -ur \"$PACKFILE\" -@" >> "$MAKEFILE"
 fi
 
 [[ $OPT_KEEP == 0 ]] || cp -f "$MAKEFILE" Makefile

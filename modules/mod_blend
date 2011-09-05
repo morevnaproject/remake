@@ -73,8 +73,6 @@ EOF
 	[ -z $WIDTH ] || echo "		rend.sizeX = $WIDTH" >> "$RENDERSCRIPT"
 	[ -z $HEIGHT ] || echo "		rend.sizeY = $HEIGHT" >> "$RENDERSCRIPT"
 	
-	[ -d "`dirname \"$RENDERSCRIPT\"`" ] || mkdir -p "`dirname \"$RENDERSCRIPT\"`"
-	
 	cat >> "$RENDERSCRIPT" << EOF
 
 		rend.xParts = 4
@@ -326,7 +324,7 @@ deps(){
 	
 	SCRIPTPATH="$(abspath "${0}")_deps"
 	
-	blender -b "`abspath $TARGET`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
+	blender -b "`abspath \"$TARGET\"`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
 		echo $LINE
 		if ( echo $LINE | grep -E '.blend$' >/dev/null); then
 			deps "$LINE"
