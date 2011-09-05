@@ -138,7 +138,7 @@ get_project_root() {
 	else
 		if [[ "$TESTDIR" == '/' ]]; then
 			echo "   ERROR: Not a 'remake' project." 1>&2
-			exit
+			exit 1
 		fi
 		get_project_root "`dirname \"$TESTDIR\"`"
 	fi
