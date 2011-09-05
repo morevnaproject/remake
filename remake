@@ -38,6 +38,9 @@ if [ ! -d $TESTDATA_PATH ]; then
 fi
 export TESTDATA_PATH
 
+#Init traps
+trap do_cleanup INT
+
 escape()
 {
 echo "$1"| sed -e "s/ /\\\\\\ /g"
@@ -139,6 +142,16 @@ get_project_root() {
 		fi
 		get_project_root "`dirname \"$TESTDIR\"`"
 	fi
+}
+
+do_cleanup(){
+	echo
+	echo "Cleaning up..."
+	rm -f "$MAKEFILE"
+	[ ! -e "${PACKFILE}.lst" ] || rm "${PACKFILE}.lst"
+	[ ! -e "${PACKFILE}.lst2" ] || rm "${PACKFILE}.lst2"
+	# Remove modules check flags
+	rm -rf "${CHECK_PATH}" || true
 }
 
 write_rules(){
@@ -542,9 +555,4 @@ echo
 
 echo "Running make..."
 make -f "$MAKEFILE" -j $THREADS $2
-# Cleanup
-rm -f "$MAKEFILE"
-[ ! -e "${PACKFILE}.lst" ] || rm "${PACKFILE}.lst"
-[ ! -e "${PACKFILE}.lst2" ] || rm "${PACKFILE}.lst2"
-# Remove modules check flags
-rm -rf "${CHECK_PATH}" || true
+do_cleanup
