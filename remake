@@ -153,6 +153,7 @@ write_rules(){
 	
 	CONFIGPATH=$(relpath "`pwd -P`" "$PROJECTROOT/remake.conf")
 	# Data packing
+	[ -d "$PROJECTROOT/packs" ] || mkdir -p "$PROJECTROOT/packs"
 	echo "${PROJECTROOT}/remake.conf" >>"${PACKFILE}.lst"
 	
 	# Ensure that render dir ignored by git
@@ -528,7 +529,7 @@ if [[ "$2" == 'pack' ]]; then
 	done < "${PACKFILE}.lst2"
 	
 	echo "pack:" >> "$MAKEFILE"
-	echo "	cd $PACKROOT; cat ${PACKFILE}.lst | zip -ur \"$PACKFILE\" -@" >> "$MAKEFILE"
+	echo "	cd $PACKROOT; cat \"${PACKFILE}.lst\" | zip -ur \"$PACKFILE\" -@" >> "$MAKEFILE"
 fi
 
 [[ $OPT_KEEP == 0 ]] || cp -f "$MAKEFILE" Makefile
