@@ -73,7 +73,7 @@ EOF
 	[ -z $WIDTH ] || echo "		rend.sizeX = $WIDTH" >> "$RENDERSCRIPT"
 	[ -z $HEIGHT ] || echo "		rend.sizeY = $HEIGHT" >> "$RENDERSCRIPT"
 	
-	[ -d "`dirname $RENDERSCRIPT`" ] || mkdir -p "`dirname $RENDERSCRIPT`"
+	[ -d "`dirname \"$RENDERSCRIPT\"`" ] || mkdir -p "`dirname \"$RENDERSCRIPT\"`"
 	
 	cat >> "$RENDERSCRIPT" << EOF
 
