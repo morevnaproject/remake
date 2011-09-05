@@ -315,6 +315,9 @@ EOF
 	else
 		echo "   Audio RAM bug: No"
 	fi
+	
+	# git stuff
+	( cat "$PROJECTROOT/.gitignore" | egrep "\*.blend1" > /dev/null ) || ( echo "*.blend1" >> "$PROJECTROOT/.gitignore" )
 }
 
 deps(){
