@@ -84,4 +84,8 @@ done
 COMMAND="rmdir ${PREFIX}/share/doc/remake"
 echo $COMMAND && $COMMAND
 
+# Desktop data
+COMMAND="rm -f ${PREFIX}/share/applications/remake.desktop"
+echo $COMMAND && $COMMAND
+
 IFS=$OLD_IFS     # restore default field separator
