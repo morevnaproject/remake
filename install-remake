@@ -58,6 +58,12 @@ done
 COMMAND="install -D -m 644 remake.desktop ${PREFIX}/share/applications/remake.desktop"
 echo $COMMAND && $COMMAND
 update-desktop-database || true
+# Nautilus-actions 3.0
+for FILE in `ls -1 desktop/nautilus-actions-3/`
+do
+	COMMAND="install -D -m 644 desktop/nautilus-actions-3/$FILE ${PREFIX}/share/file-manager/actions/$FILE"
+	[ -d $FILE ] || ( echo $COMMAND && $COMMAND )
+done
 
 IFS=$OLD_IFS     # restore default field separator
 

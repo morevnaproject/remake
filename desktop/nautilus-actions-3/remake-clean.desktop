@@ -1,0 +1,16 @@
+
+[Desktop Entry]
+Type=Action
+Name[ru_RU]=Remake - Clean
+Name[ru]=Remake - Clean
+ToolbarLabel[ru_RU]=Remake - Clean
+ToolbarLabel[ru]=Remake - Clean
+Profiles=profile-zero;
+
+[X-Action-Profile profile-zero]
+Name[ru_RU]=Default profile
+Name[ru]=Default profile
+Exec=remake-gui %f clean
+Basenames=*.*;
+Matchcase=false
+SelectionCount==1

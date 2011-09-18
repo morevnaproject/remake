@@ -87,5 +87,11 @@ echo $COMMAND && $COMMAND
 # Desktop data
 COMMAND="rm -f ${PREFIX}/share/applications/remake.desktop"
 echo $COMMAND && $COMMAND
+# Nautilus-actions 3.0
+for FILE in `ls -1 desktop/nautilus-actions-3/`
+do
+	COMMAND="rm -f ${PREFIX}/share/file-manager/actions/$FILE"
+	[ -e ${PREFIX}/share/file-manager/actions/$FILE ] || ( echo $COMMAND && $COMMAND )
+done
 
 IFS=$OLD_IFS     # restore default field separator
