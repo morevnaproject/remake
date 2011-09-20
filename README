@@ -21,7 +21,10 @@ If you are about to start your own animation project with mentioned open-source 
 2.  The Adventures of Boris Munchausen
      Homepage: http://munchausenproject.wordpress.com/
      Sources:  http://github.com/morevnaproject/munchausen
-
+3.  Amazing Sentence
+     Homepage: http://morevnaproject.org/2011/06/19/amazing-sentence/
+     Sources:  http://synfig.org/files/amazing-sentence.remake.zip
+     
 == Requirements ==
 The requirements for "Remake" are:
  [+] GNU make - for changes tracking 
