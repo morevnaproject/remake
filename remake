@@ -138,7 +138,7 @@ get_project_root() {
 	else
 		if [[ "$TESTDIR" == '/' ]]; then
 			echo "   ERROR: Not a 'remake' project." 1>&2
-			exit 1
+			exit
 		fi
 		get_project_root "`dirname \"$TESTDIR\"`"
 	fi
@@ -157,6 +157,9 @@ do_cleanup(){
 write_rules(){
 	
 	PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
+	if [[ "$PROJECTROOT" == "" ]]; then
+		exit 1
+	fi
 	pushd "`dirname "$1"`" >/dev/null
 	RENDERPREFIX=$(pwd -P | sed -e "s|$PROJECTROOT||")
 	[ -d "$PROJECTROOT/render${RENDERPREFIX}" ] || mkdir -p "$PROJECTROOT/render${RENDERPREFIX}"
@@ -499,6 +502,9 @@ if [[ "$2" == 'stereo' ]]; then
 fi
 
 PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
+if [[ "$PROJECTROOT" == "" ]]; then
+	exit 1
+fi
 
 CHECK_PATH="${PROJECTROOT}/render/tmp/check.$$"
 export CHECK_PATH
