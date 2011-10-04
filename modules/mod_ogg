@@ -20,6 +20,15 @@ check(){
 EOF
 		exit 1
 	fi
+	if ! ( which sox > /dev/null 2>&1 ); then
+		cat <<EOF
+   FATAL: Can't find 'sox' binary!
+   
+          Please install 'sox' package using software manager of 
+          your linux distributive.
+EOF
+		exit 1
+	fi
 }
 
 format(){
@@ -32,14 +41,18 @@ deps(){
 }
 
 rules(){
+	TEMPFILE=$RENDERPATH.$$
 	echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 	cat >> "$MAKEFILE" << EOF
 	rm -rf "$RENDERPATH"
-	oggdec "$TARGET" -o "$RENDERPATH"
+	oggdec "$TARGET" -o "$TEMPFILE"
+	sox "$TEMPFILE" -r $AUDIO_RATE "$RENDERPATH" polyphase
+	rm -rf "$TEMPFILE"
 EOF
 
 	echo "`escape "$RENDERPATH-clean:"`" >> "$MAKEFILE"
 	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+	echo "	rm -rf \"$TEMPFILE\"" >> "$MAKEFILE"
 }
 
 $1 "$2"
