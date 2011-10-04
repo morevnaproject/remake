@@ -188,6 +188,10 @@ write_rules(){
 	# Re-reading config
 	. "$PROJECTROOT/remake.conf"
 	
+	if [ -z $AUDIO_RATE ]; then
+		AUDIO_RATE=48000
+	fi
+	
 	DEPS=`escape "$CONFIGPATH"`
 	SINGLE=''
 	
@@ -231,6 +235,7 @@ write_rules(){
 	export FPS
 	export SINGLE
 	export UPDATE
+	export AUDIO_RATE
 	
 	export TARGET
 	export RENDERPATH
