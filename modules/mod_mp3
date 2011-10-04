@@ -45,8 +45,8 @@ rules(){
 	cat >> "$MAKEFILE" << EOF
 	rm -rf "$RENDERPATH"
 	mpg123 -w "$RENDERPATH.$$" "$TARGET"
-	sox "$RENDERPATH.$$" -r $AUDIO_RATE "$RENDERPATH" polyphase
-	rm -rf "$RENDERPATH.$$"
+	sox "$TEMPFILE" -r $AUDIO_RATE "$RENDERPATH" polyphase
+	rm -rf "$TEMPFILE"
 EOF
 
 	echo "`escape "$RENDERPATH-clean:"`" >> "$MAKEFILE"
