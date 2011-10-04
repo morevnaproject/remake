@@ -32,7 +32,7 @@ The requirements for "Remake" are:
  [+] blender >= 2.48 (with FFMpeg support) - required by "mod_blend" for 3D animation and footage sequence editing
      (http://www.blender.org/)
  [+] synfig >= 0.62.00 - required by "mod_sif" for 2D animation
-     (http://synfig.org/)
+     (http://www.synfig.org/)
  [-] pencil >= 0.5 (with unofficial patches from morevnaproject) - required by "mod_pcl" for 2D animation
      (http://www.pencil-animation.org/)
  [-] ffmpeg - required for "snapshot" action
@@ -41,6 +41,8 @@ The requirements for "Remake" are:
      (http://www.xiph.org/)
  [-] mpg123 - required by "mod_mp3" for mp3 files support 
      (http://www.mpg123.de/)
+ [-] sox - required by "mod_mp3" and "mod_ogg" 
+     (http://sox.sourceforge.net/)
 
 where:
  [+] - mandatory dependency
