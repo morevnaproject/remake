@@ -137,7 +137,6 @@ get_project_root() {
 		echo $TESTDIR
 	else
 		if [[ "$TESTDIR" == '/' ]]; then
-			echo "   ERROR: Not a 'remake' project." 1>&2
 			exit
 		fi
 		get_project_root "`dirname \"$TESTDIR\"`"
@@ -158,6 +157,7 @@ write_rules(){
 	
 	PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 	if [[ "$PROJECTROOT" == "" ]]; then
+		echo "   ERROR: Not a 'remake' project." 1>&2
 		exit 1
 	fi
 	pushd "`dirname "$1"`" >/dev/null
@@ -508,6 +508,7 @@ fi
 
 PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 if [[ "$PROJECTROOT" == "" ]]; then
+	echo "   ERROR: Not a 'remake' project." 1>&2
 	exit 1
 fi
 
