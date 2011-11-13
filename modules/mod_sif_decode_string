@@ -13,4 +13,5 @@ def decode_unicode_references(data):
     return re.sub("&#x([a-zA-Z0-9]+)(;|(?=\s))", _callback, data)
 
 result=decode_unicode_references(sys.argv[1])
+result=result.replace('%20',' ')
 print result.encode('utf-8')
