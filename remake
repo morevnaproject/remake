@@ -315,6 +315,7 @@ write_rules(){
 						
 						if [ -d "$TARGETCANDIDATE" ]; then
 							echo "         ERROR: Can't define target from directory."
+							LINE=""
 						else
 							if [ ! -e "$TARGETCANDIDATE" ]; then
 								echo "   ERROR: Not found!"
