@@ -278,7 +278,7 @@ write_rules(){
 			EXTPROJECTROOT=`get_project_root "$DIR"`
 			if [[ "$EXTPROJECTROOT" == "" ]]; then
 				# Report files outside of the repo
-				echo "   $LINE"
+				[ -z $DEBUG ] || echo "   $LINE"
 				echo "   WARNING: '$LINE' is not belongs to any project."
 				echo "            Skipping."
 				# Data packing
@@ -304,24 +304,24 @@ write_rules(){
 					#DEP=$(relpath `pwd` $DEPDIR)/`basename $LINE`
 					#LINE=`echo "$LINE"| sed -e "s/ /\\\\\\\\ /g"`
 					#LINE=`echo "$LINE"| sed -e "s/\\\\\\ / /g"`
-					echo "   INFO: Dependency '$LINE' defines another target."
+					[ -z $DEBUG ] || echo "   INFO: Dependency '$LINE' defines another target."
 					
 					TARGETCANDIDATE=`echo $DEPDIR/$(basename "${LINE%.*}") | sed -e "s|^${EXTPROJECTROOT}/render/|${EXTPROJECTROOT}/|" `
 					if [ ! -e "$TARGETCANDIDATE" ]; then
 						TMP=$TARGETCANDIDATE
 						TARGETCANDIDATE=`dirname "${TARGETCANDIDATE}"`
 						TARGETCANDIDATE=${TARGETCANDIDATE%.*}
-						echo "   INFO: Trying to fix '$TMP' to '$TARGETCANDIDATE'."
+						[ -z $DEBUG ] || echo "   INFO: Trying to fix '$TMP' to '$TARGETCANDIDATE'."
 						
 						if [ -d "$TARGETCANDIDATE" ]; then
-							echo "         ERROR: Can't define target from directory."
+							[ -z $DEBUG ] || echo "         ERROR: Can't define target from directory."
 							LINE=""
 						else
 							if [ ! -e "$TARGETCANDIDATE" ]; then
-								echo "   ERROR: Not found!"
+								[ -z $DEBUG ] || echo "   ERROR: Not found!"
 								LINE=""
 							else
-								echo "         Successfull."
+								[ -z $DEBUG ] || echo "         Successfull."
 								LINE="$(relpath "`pwd -P`" "$TARGETCANDIDATE")"
 							fi
 						fi
