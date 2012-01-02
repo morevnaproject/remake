@@ -46,4 +46,4 @@ except:
 			# We need to avoid that.
 			f=re.sub('^//+','//',f)
 			
-			Print("dependency: %s" % bpy.path.abspath(f))
+			Print("dependency: %s" % os.path.abspath(bpy.path.abspath(f)))
