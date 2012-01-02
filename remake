@@ -322,12 +322,15 @@ write_rules(){
 								LINE=""
 							else
 								echo "         Successfull."
-								LINE=`dirname "$LINE"`
+								LINE="$(relpath "`pwd -P`" "$TARGETCANDIDATE")"
 							fi
 						fi
 					fi
 					
-					DEPS="$DEPS `escape "$LINE"`"
+					ESCAPED_LINE=`escape "$LINE"`
+					if ! ( echo $DEPS | grep -E "$ESCAPED_LINE" > /dev/null ); then
+						DEPS="$DEPS $ESCAPED_LINE"
+					fi
 					
 					if [ -e "$TARGETCANDIDATE" ] && [ ! -d "$TARGETCANDIDATE" ]; then
 						#TARGETCANDIDATE=`echo "$TARGETCANDIDATE"| sed -e 's/ /\\\\\\\\ /g'`
@@ -344,7 +347,10 @@ write_rules(){
 						#popd >/dev/null
 						#DEPS="$DEPS $(relpath `pwd` $DEPDIR)/`basename $LINE`"
 						#LINE=`echo "$LINE"| sed -e "s/ /\\\\\\ /g"`
-						DEPS="$DEPS `escape "$LINE"`"
+						ESCAPED_LINE=`escape "$LINE"`
+						if ! ( echo $DEPS | grep -E "$ESCAPED_LINE" > /dev/null ); then
+							DEPS="$DEPS $ESCAPED_LINE"
+						fi
 						# Data packing
 						echo $(abspath "$LINE") >>"${PACKFILE}.lst"
 					fi
