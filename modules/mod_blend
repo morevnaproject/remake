@@ -180,12 +180,14 @@ info_blender_get(){
 		info_blender_get24
 	elif [[ ${BLENDER_VERSION:0:3} == '2.5' ]]; then
 		info_blender_get25
+	elif [[ ${BLENDER_VERSION:0:3} == '2.6' ]]; then
+		info_blender_get26
 	else
 	cat << EOF
           You can get prebuilt Blender packages from the following 
           sources:
             * http://www.blender.org/download/get-blender/
-            * http://morevnaproject.org/packages/#blender
+            * http://download.tuxfamily.org/morevna/morevnapackage/binaries/blender/
 
 EOF
 	fi
@@ -195,8 +197,8 @@ info_blender_get24(){
 	cat << EOF
           You can get prebuilt Blender packages from the following 
           sources:
-            * http://download.blender.org/release/Blender2.49b/
-            * http://morevnaproject.org/packages/#blender
+            * http://download.blender.org/release/
+            * http://download.tuxfamily.org/morevna/morevnapackage/binaries/blender/
 
 EOF
 }
@@ -204,7 +206,16 @@ info_blender_get25(){
 	cat << EOF
           You can get prebuilt Blender packages from the following 
           source:
+            * http://download.blender.org/release/
+
+EOF
+}
+info_blender_get26(){
+	cat << EOF
+          You can get prebuilt Blender packages from the following 
+          source:
             * http://www.blender.org/download/get-blender/
+            * http://download.tuxfamily.org/morevna/morevnapackage/binaries/blender/
 
 EOF
 }
@@ -254,13 +265,7 @@ check(){
           Please install appropriate version of Blender.
 
 EOF
-			if [[ ${BLENDER_VERSION:0:3} == '2.4' ]]; then
-				info_blender_get24
-			elif [[ ${BLENDER_VERSION:0:3} == '2.5' ]]; then
-				info_blender_get25
-			else
-				info_blender_get
-			fi
+			info_blender_get
 			info_blender_path
 			cat <<EOF
           If you still want to use different version of Blender, you 
