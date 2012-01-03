@@ -64,9 +64,9 @@ OPTIONS:
   -h            Show this message.
   -k            Keep Makefile so you can skip dependency detection 
                 and re-invoke rendering by typing 'make'.
-  -n            Don't use cache when retrieving dependencies.
   -t <threads>  Specify the amount of rendering jobs to be run 
                 in parallel. Use zero for no limit.
+  -z            Don't use cache when retrieving dependencies.
 
 COMMANDS:
   clean         Remove all rendered footage associated with the file.
@@ -281,8 +281,28 @@ write_rules(){
 	
 	if [ ! -z $CACHE ]; then
 		echo "   Cache file found."
-		DEPS="`sed '3q;d' "$CACHEFILE"` "
-		PENDINGTARGETS=`sed '4q;d' "$CACHEFILE"`
+		
+		DEPS_CACHE="`sed '3q;d' "$CACHEFILE"` "
+		while read LINE; do
+			if [ ! -z "$LINE" ]; then
+				pushd "`dirname "$TARGET"`" >/dev/null
+				LINE="`abspath "$LINE"`"
+				popd >/dev/null
+				LINE="$(relpath "`pwd -P`" "$LINE")"
+				ESCAPED_LINE=`escape "$LINE"`
+				DEPS="${DEPS}${ESCAPED_LINE} "
+			fi
+		done < <( echo -e "$DEPS_CACHE" )
+		
+		PENDINGTARGETS_CACHE=`sed '4q;d' "$CACHEFILE"`
+		while read TARGETCANDIDATE; do
+			if [ ! -z "$TARGETCANDIDATE" ]; then
+				pushd "`dirname "$TARGET"`" >/dev/null
+				TARGETCANDIDATE="`abspath "$TARGETCANDIDATE"`"
+				popd >/dev/null
+				PENDINGTARGETS="${PENDINGTARGETS}${TARGETCANDIDATE}\n"
+			fi
+		done < <( echo -e "$PENDINGTARGETS_CACHE" )
 	elif [ ! -f "$MODULES_PATH/mod_$EXT" ]; then
 		echo "   WARNING: Don't know how to handle file with $EXT extension."
 		echo "            Skipping."
@@ -357,10 +377,9 @@ write_rules(){
 						DEPS="${DEPS}${ESCAPED_LINE} "
 						# Writing cache
 						LINE=`abspath "$LINE"`
-						pushd "`dirname "$TARGET"`"
+						pushd "`dirname "$TARGET"`" >/dev/null
 						DEPS_CACHE="${DEPS_CACHE}$(relpath "`pwd -P`" "$LINE")\n"
-						popd
-						set +x
+						popd >/dev/null
 					fi
 					
 					if [ -e "$TARGETCANDIDATE" ] && [ ! -d "$TARGETCANDIDATE" ]; then
@@ -368,9 +387,9 @@ write_rules(){
 						if ! ( echo $PENDINGTARGETS | grep -E "\\\\n${TARGETCANDIDATE}\\\\n" > /dev/null ); then
 							PENDINGTARGETS="${PENDINGTARGETS}${TARGETCANDIDATE}\n"
 
-							pushd "`dirname "$TARGET"`"
+							pushd "`dirname "$TARGET"`" >/dev/null
 							PENDINGTARGETS_CACHE="${PENDINGTARGETS_CACHE}$(relpath "`pwd -P`" "$TARGETCANDIDATE")\n"
-							popd
+							popd >/dev/null
 						fi
 					fi
 				else
@@ -389,9 +408,9 @@ write_rules(){
 							DEPS="${DEPS}${ESCAPED_LINE} "
 							# Writing cache
 							LINE=`abspath "$LINE"`
-							pushd "`dirname "$TARGET"`"
+							pushd "`dirname "$TARGET"`" >/dev/null
 							DEPS_CACHE="${DEPS_CACHE}$(relpath "`pwd -P`" "$LINE")\n"
-							popd
+							popd >/dev/null
 						fi
 						
 						# Data packing
@@ -492,7 +511,7 @@ OPT_KEEP=0
 OPT_NOCACHE=0
 THREADS=1
 CAMERA=""
-while getopts "c:f:hknt:" OPTION
+while getopts "c:f:hkt:z" OPTION
 do
      case $OPTION in
          c)
@@ -508,14 +527,14 @@ do
          k)
              OPT_KEEP=1
              ;;
-         n)
-             OPT_NOCACHE=1
-             ;;
          t)
              THREADS="$OPTARG"
              if [[ $THREADS == 0 ]]; then
                 THREADS=''
              fi
+             ;;
+         z)
+             OPT_NOCACHE=1
              ;;
          ?)
              usage
