@@ -62,6 +62,8 @@ OPTIONS:
   -c <camera>   Select camera to render from (if applicable).
   -f <format>   Force output format.
   -h            Show this message.
+  -i            Ignore all errors in commands executed to remake 
+                files.
   -k            Keep Makefile so you can skip dependency detection 
                 and re-invoke rendering by typing 'make'.
   -t <threads>  Specify the amount of rendering jobs to be run 
@@ -508,9 +510,10 @@ write_rules(){
 
 OPT_KEEP=0
 OPT_NOCACHE=0
+OPT_IGNORE_ERRORS=''
 THREADS=1
 CAMERA=""
-while getopts "c:f:hkt:z" OPTION
+while getopts "c:f:hikt:z" OPTION
 do
      case $OPTION in
          c)
@@ -522,6 +525,9 @@ do
          h)
              usage
              exit 1
+             ;;
+         i)
+             OPT_IGNORE_ERRORS='-i'
              ;;
          k)
              OPT_KEEP=1
@@ -643,5 +649,5 @@ echo "==============================================="
 echo
 
 echo "Running make..."
-make -f "$MAKEFILE" -j $THREADS $2
+make -f "$MAKEFILE" -j $THREADS $OPT_IGNORE_ERRORS $2
 do_cleanup
