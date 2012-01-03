@@ -259,24 +259,30 @@ write_rules(){
 	
 	
 	PENDINGTARGETS='\n'
+	PENDINGTARGETS_CACHE='\n'
+	DEPS_CACHE='\n'
 	
 	# Looking for cachefile
 	CACHE=''
+	CACHE_VERSION=1
 	CACHEFILE="${RENDERPATH%.*}.deps"
 	TARGETDATE=`stat -c %Y "$TARGET"`
 	if [[ $OPT_NOCACHE == 0 ]]; then
 		if [ -e "$CACHEFILE" ]; then
-			CACHEDATE=`cat "$CACHEFILE"| head -n 1`
-			if [[ $CACHEDATE == $CACHEDATE ]]; then
-				CACHE='found'
+			CACHEFILEVERSION=`sed '1q;d' "$CACHEFILE"`
+			if [[ "$CACHE_VERSION" == "$CACHEFILEVERSION" ]]; then
+				CACHEDATE=`sed '2q;d' "$CACHEFILE"`
+				if [[ $CACHEDATE == $CACHEDATE ]]; then
+					CACHE='found'
+				fi
 			fi
 		fi
 	fi
 	
 	if [ ! -z $CACHE ]; then
 		echo "   Cache file found."
-		DEPS="`sed '2q;d' "$CACHEFILE"` "
-		PENDINGTARGETS=`sed '3q;d' "$CACHEFILE"`
+		DEPS="`sed '3q;d' "$CACHEFILE"` "
+		PENDINGTARGETS=`sed '4q;d' "$CACHEFILE"`
 	elif [ ! -f "$MODULES_PATH/mod_$EXT" ]; then
 		echo "   WARNING: Don't know how to handle file with $EXT extension."
 		echo "            Skipping."
@@ -349,12 +355,22 @@ write_rules(){
 					ESCAPED_LINE=`escape "$LINE"`
 					if ! ( echo "$DEPS" | grep -F " $ESCAPED_LINE " > /dev/null ); then
 						DEPS="${DEPS}${ESCAPED_LINE} "
+						# Writing cache
+						LINE=`abspath "$LINE"`
+						pushd "`dirname "$TARGET"`"
+						DEPS_CACHE="${DEPS_CACHE}$(relpath "`pwd -P`" "$LINE")\n"
+						popd
+						set +x
 					fi
 					
 					if [ -e "$TARGETCANDIDATE" ] && [ ! -d "$TARGETCANDIDATE" ]; then
 						#TARGETCANDIDATE=`echo "$TARGETCANDIDATE"| sed -e 's/ /\\\\\\\\ /g'`
 						if ! ( echo $PENDINGTARGETS | grep -E "\\\\n${TARGETCANDIDATE}\\\\n" > /dev/null ); then
 							PENDINGTARGETS="${PENDINGTARGETS}${TARGETCANDIDATE}\n"
+
+							pushd "`dirname "$TARGET"`"
+							PENDINGTARGETS_CACHE="${PENDINGTARGETS_CACHE}$(relpath "`pwd -P`" "$TARGETCANDIDATE")\n"
+							popd
 						fi
 					fi
 				else
@@ -371,6 +387,11 @@ write_rules(){
 						ESCAPED_LINE=`escape "$LINE"`
 						if ! ( echo $DEPS | grep -F " $ESCAPED_LINE " > /dev/null ); then
 							DEPS="${DEPS}${ESCAPED_LINE} "
+							# Writing cache
+							LINE=`abspath "$LINE"`
+							pushd "`dirname "$TARGET"`"
+							DEPS_CACHE="${DEPS_CACHE}$(relpath "`pwd -P`" "$LINE")\n"
+							popd
 						fi
 						
 						# Data packing
@@ -380,9 +401,10 @@ write_rules(){
 			fi
 		done < <( echo "$RAWDEPS" )
 		# Write cache
-		echo $TARGETDATE > "$CACHEFILE"
-		echo $DEPS >> "$CACHEFILE"
-		echo $PENDINGTARGETS >> "$CACHEFILE"
+		echo $CACHE_VERSION > "$CACHEFILE"
+		echo $TARGETDATE >> "$CACHEFILE"
+		echo $DEPS_CACHE >> "$CACHEFILE"
+		echo $PENDINGTARGETS_CACHE >> "$CACHEFILE"
 		fi
 	fi
 		
