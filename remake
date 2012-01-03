@@ -64,6 +64,7 @@ OPTIONS:
   -h            Show this message.
   -k            Keep Makefile so you can skip dependency detection 
                 and re-invoke rendering by typing 'make'.
+  -n            Don't use cache when retrieving dependencies.
   -t <threads>  Specify the amount of rendering jobs to be run 
                 in parallel. Use zero for no limit.
 
@@ -192,7 +193,7 @@ write_rules(){
 		AUDIO_RATE=48000
 	fi
 	
-	DEPS=`escape "$CONFIGPATH"`
+	DEPS="`escape "$CONFIGPATH"` "
 	SINGLE=''
 	
 	export FORMAT
@@ -205,7 +206,7 @@ write_rules(){
 	# Looking for extra settings
 	if [ -e "${TARGET}.conf" ]; then
 		. "${TARGET}.conf"
-		DEPS="$DEPS `escape "${TARGET}.conf"`"
+		DEPS="$DEPS `escape "${TARGET}.conf"` "
 		# Data packing
 		echo $(abspath "${TARGET}.conf") >>"${PACKFILE}.lst"
 	fi
@@ -257,8 +258,26 @@ write_rules(){
 	fi
 	
 	
-	PENDINGTARGETS=''
-	if [ ! -f "$MODULES_PATH/mod_$EXT" ]; then
+	PENDINGTARGETS='\n'
+	
+	# Looking for cachefile
+	CACHE=''
+	CACHEFILE="${RENDERPATH%.*}.deps"
+	TARGETDATE=`stat -c %Y "$TARGET"`
+	if [[ $OPT_NOCACHE == 0 ]]; then
+		if [ -e "$CACHEFILE" ]; then
+			CACHEDATE=`cat "$CACHEFILE"| head -n 1`
+			if [[ $CACHEDATE == $CACHEDATE ]]; then
+				CACHE='found'
+			fi
+		fi
+	fi
+	
+	if [ ! -z $CACHE ]; then
+		echo "   Cache file found."
+		DEPS="`sed '2q;d' "$CACHEFILE"` "
+		PENDINGTARGETS=`sed '3q;d' "$CACHEFILE"`
+	elif [ ! -f "$MODULES_PATH/mod_$EXT" ]; then
 		echo "   WARNING: Don't know how to handle file with $EXT extension."
 		echo "            Skipping."
 	else
@@ -328,13 +347,15 @@ write_rules(){
 					fi
 					
 					ESCAPED_LINE=`escape "$LINE"`
-					if ! ( echo $DEPS | grep -E "$ESCAPED_LINE" > /dev/null ); then
-						DEPS="$DEPS $ESCAPED_LINE"
+					if ! ( echo "$DEPS" | grep -F " $ESCAPED_LINE " > /dev/null ); then
+						DEPS="${DEPS}${ESCAPED_LINE} "
 					fi
 					
 					if [ -e "$TARGETCANDIDATE" ] && [ ! -d "$TARGETCANDIDATE" ]; then
 						#TARGETCANDIDATE=`echo "$TARGETCANDIDATE"| sed -e 's/ /\\\\\\\\ /g'`
-						PENDINGTARGETS=$(echo -e "$PENDINGTARGETS\n$TARGETCANDIDATE")
+						if ! ( echo $PENDINGTARGETS | grep -E "\\\\n${TARGETCANDIDATE}\\\\n" > /dev/null ); then
+							PENDINGTARGETS="${PENDINGTARGETS}${TARGETCANDIDATE}\n"
+						fi
 					fi
 				else
 					if [ ! -e "$LINE" ]; then
@@ -348,102 +369,108 @@ write_rules(){
 						#DEPS="$DEPS $(relpath `pwd` $DEPDIR)/`basename $LINE`"
 						#LINE=`echo "$LINE"| sed -e "s/ /\\\\\\ /g"`
 						ESCAPED_LINE=`escape "$LINE"`
-						if ! ( echo $DEPS | grep -E "$ESCAPED_LINE" > /dev/null ); then
-							DEPS="$DEPS $ESCAPED_LINE"
+						if ! ( echo $DEPS | grep -F " $ESCAPED_LINE " > /dev/null ); then
+							DEPS="${DEPS}${ESCAPED_LINE} "
 						fi
+						
 						# Data packing
 						echo $(abspath "$LINE") >>"${PACKFILE}.lst"
 					fi
 				fi
 			fi
 		done < <( echo "$RAWDEPS" )
+		# Write cache
+		echo $TARGETDATE > "$CACHEFILE"
+		echo $DEPS >> "$CACHEFILE"
+		echo $PENDINGTARGETS >> "$CACHEFILE"
 		fi
-		
-		export DEPS
-		
-		# Allow to override rules per file
-		if [ -e "${TARGET}.make" ]; then
-			echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
-			echo "	cd `dirname "$RENDERPATH"` && make -f `basename \"${TARGET}.make\"`" >> "$MAKEFILE"
-			echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
-			echo "	cd `dirname "$RENDERPATH"` && make -f `basename \"${TARGET}.make\"` clean" >> "$MAKEFILE"
-		else
-			bash -e "$MODULES_PATH/mod_$EXT" rules
-		fi
-		
-		if [[ "$2" == 'deps' ]]; then
-			echo ".PHONY: deps" >> "$MAKEFILE"
-			echo "deps: $DEPS" >> "$MAKEFILE"
-		fi
-		
-		echo ".PHONY: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
-		echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
-		
-		# Data packing
-		echo $(abspath "$TARGET") >>"${PACKFILE}.lst"
-		
-		# Stereo rendering
-		if [[ "$2" == 'stereo' ]]; then
-			
-			RENDERPATH_STEREO=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`-stereo
-			RENDERPATH_AUDIO="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.mp2|"`"
-			
-			echo "stereo: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
-			echo ".PHONY: stereo" >> "$MAKEFILE"
-			echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
-			echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/left\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/left\"" >> "$MAKEFILE"
-			echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
-			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
-			echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
-			echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-			echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-			echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
-			echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
-			echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
-			echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/file.lst\" \"${RENDERPATH_STEREO}.png/\"" >> "$MAKEFILE"
-			echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
-			echo "	if [[ \`stat -c%s \"$RENDERPATH_AUDIO\"\` == 0 ]];then \\" >> "$MAKEFILE"
-			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"; \\" >> "$MAKEFILE"
-			echo "	else \\" >> "$MAKEFILE"
-			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -i \"$RENDERPATH_AUDIO\" -acodec copy -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"; \\" >> "$MAKEFILE"
-			echo "	fi" >> "$MAKEFILE"
-		fi
-		# "Snapshot" rule
-		if [[ "$2" == 'snapshot' ]]; then
-			[ -d "$PROJECTROOT/snapshots${RENDERPREFIX}" ] || mkdir -p "$PROJECTROOT/snapshots${RENDERPREFIX}"
-			
-			# SCM detection
-			pushd "$PROJECTROOT/${RENDERPREFIX}" >/dev/null
-			if git rev-parse --git-dir > /dev/null  2>&1 ; then
-				COMMITID=$(git show --pretty=oneline|head -n 1|sed 's/ .*//')
-				COMMITID="-$COMMITID"
-			fi
-			popd >/dev/null
-			
-			SNAPSHOTPATH=$(relpath "`pwd -P`" "$PROJECTROOT/snapshots${RENDERPREFIX}")/`basename "$TARGET"`-`date +%Y%m%d-%H%M%S`${COMMITID}
-			echo "snapshot: `escape "$SNAPSHOTPATH"`" >> "$MAKEFILE"
-			echo "`escape "$SNAPSHOTPATH"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
-			if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]]; then
-				echo "	cp -f \"${RENDERPATH}\" \"${SNAPSHOTPATH}.$FORMAT\"" >> "$MAKEFILE"
-			else
-				echo "	ffmpeg -y -i \"${RENDERPATH}/file.%04d.png\" -sameq -r $FPS \"${SNAPSHOTPATH}.avi\"" >> "$MAKEFILE"
-			fi
-			echo ".PHONY: snapshot" >> "$MAKEFILE"
-		fi
-		
-		while read TARGET; do
-			if [ ! -z "$TARGET" ];then
-				write_rules "$TARGET"
-			fi
-		done < <( echo "$PENDINGTARGETS" )
 	fi
+		
+	export DEPS
+	
+	# Allow to override rules per file
+	if [ -e "${TARGET}.make" ]; then
+		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		echo "	cd `dirname "$RENDERPATH"` && make -f `basename \"${TARGET}.make\"`" >> "$MAKEFILE"
+		echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
+		echo "	cd `dirname "$RENDERPATH"` && make -f `basename \"${TARGET}.make\"` clean" >> "$MAKEFILE"
+	else
+		bash -e "$MODULES_PATH/mod_$EXT" rules
+	fi
+	
+	if [[ "$2" == 'deps' ]]; then
+		echo ".PHONY: deps" >> "$MAKEFILE"
+		echo "deps: $DEPS" >> "$MAKEFILE"
+	fi
+	
+	echo ".PHONY: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
+	echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
+	
+	# Data packing
+	echo $(abspath "$TARGET") >>"${PACKFILE}.lst"
+	
+	# Stereo rendering
+	if [[ "$2" == 'stereo' ]]; then
+		
+		RENDERPATH_STEREO=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`-stereo
+		RENDERPATH_AUDIO="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.mp2|"`"
+		
+		echo "stereo: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
+		echo ".PHONY: stereo" >> "$MAKEFILE"
+		echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/left\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/left\"" >> "$MAKEFILE"
+		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
+		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
+		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
+		echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
+		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
+		echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/file.lst\" \"${RENDERPATH_STEREO}.png/\"" >> "$MAKEFILE"
+		echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
+		echo "	if [[ \`stat -c%s \"$RENDERPATH_AUDIO\"\` == 0 ]];then \\" >> "$MAKEFILE"
+		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"; \\" >> "$MAKEFILE"
+		echo "	else \\" >> "$MAKEFILE"
+		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -i \"$RENDERPATH_AUDIO\" -acodec copy -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"; \\" >> "$MAKEFILE"
+		echo "	fi" >> "$MAKEFILE"
+	fi
+	# "Snapshot" rule
+	if [[ "$2" == 'snapshot' ]]; then
+		[ -d "$PROJECTROOT/snapshots${RENDERPREFIX}" ] || mkdir -p "$PROJECTROOT/snapshots${RENDERPREFIX}"
+		
+		# SCM detection
+		pushd "$PROJECTROOT/${RENDERPREFIX}" >/dev/null
+		if git rev-parse --git-dir > /dev/null  2>&1 ; then
+			COMMITID=$(git show --pretty=oneline|head -n 1|sed 's/ .*//')
+			COMMITID="-$COMMITID"
+		fi
+		popd >/dev/null
+		
+		SNAPSHOTPATH=$(relpath "`pwd -P`" "$PROJECTROOT/snapshots${RENDERPREFIX}")/`basename "$TARGET"`-`date +%Y%m%d-%H%M%S`${COMMITID}
+		echo "snapshot: `escape "$SNAPSHOTPATH"`" >> "$MAKEFILE"
+		echo "`escape "$SNAPSHOTPATH"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+		if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]]; then
+			echo "	cp -f \"${RENDERPATH}\" \"${SNAPSHOTPATH}.$FORMAT\"" >> "$MAKEFILE"
+		else
+			echo "	ffmpeg -y -i \"${RENDERPATH}/file.%04d.png\" -sameq -r $FPS \"${SNAPSHOTPATH}.avi\"" >> "$MAKEFILE"
+		fi
+		echo ".PHONY: snapshot" >> "$MAKEFILE"
+	fi
+	
+	while read TARGET; do
+		if [ ! -z "$TARGET" ];then
+			write_rules "$TARGET"
+		fi
+	done < <( echo -e "$PENDINGTARGETS" )
 	fi
 }
 
 OPT_KEEP=0
+OPT_NOCACHE=0
 THREADS=1
 CAMERA=""
-while getopts "c:f:hkt:" OPTION
+while getopts "c:f:hknt:" OPTION
 do
      case $OPTION in
          c)
@@ -458,6 +485,9 @@ do
              ;;
          k)
              OPT_KEEP=1
+             ;;
+         n)
+             OPT_NOCACHE=1
              ;;
          t)
              THREADS="$OPTARG"
