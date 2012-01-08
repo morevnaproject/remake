@@ -157,6 +157,11 @@ do_cleanup(){
 }
 
 write_rules(){
+	if [ -z $2 ]; then
+		DOWRITE=1
+	else
+		DOWRITE=$2
+	fi
 	
 	PROJECTROOT=$(get_project_root "`dirname \"$1\"`")
 	if [[ "$PROJECTROOT" == "" ]]; then
@@ -214,16 +219,20 @@ write_rules(){
 	fi
 	
 	# Format can be overriden by commandline option
-	if [ ! -z "$3" ]; then
-		FORMAT="$3"
+	if [ ! -z "$4" ]; then
+		FORMAT="$4"
 	fi
 	
 	# Format should be forced to PNG if snapshot is requested
-	if [[ "$2" == 'snapshot' && $FORMAT != 'mpg' && $FORMAT != 'avi' ]]; then
+	if [[ "$3" == 'snapshot' && $FORMAT != 'mpg' && $FORMAT != 'avi' ]]; then
 		FORMAT=png
 	fi
 	
-	RENDERPATH=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`.$FORMAT
+	if [ $DOWRITE == 1 ]; then
+		RENDERPATH=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`.$FORMAT
+	else
+		RENDERPATH=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`.dep
+	fi
 	
 	# check if rules for this target are already written
 	ESCAPED_RENDERPATH="`escape "$RENDERPATH"`"
@@ -265,15 +274,15 @@ write_rules(){
 	
 	# Looking for cachefile
 	CACHE=''
-	CACHE_VERSION=1
+	CACHE_VERSION=2
 	CACHEFILE="${RENDERPATH%.*}.deps"
 	TARGETDATE=`stat -c %Y "$TARGET"`
 	if [[ $OPT_NOCACHE == 0 ]]; then
-		if [ -e "$CACHEFILE" ]; then
+		if [ -f "$CACHEFILE" ]; then
 			CACHEFILEVERSION=`sed '1q;d' "$CACHEFILE"`
 			if [[ "$CACHE_VERSION" == "$CACHEFILEVERSION" ]]; then
 				CACHEDATE=`sed '2q;d' "$CACHEFILE"`
-				if [[ $CACHEDATE == $CACHEDATE ]]; then
+				if [[ $TARGETDATE == $CACHEDATE ]]; then
 					CACHE='found'
 				fi
 			fi
@@ -289,6 +298,21 @@ write_rules(){
 				pushd "`dirname "$TARGET"`" >/dev/null
 				LINE="`abspath "$LINE"`"
 				popd >/dev/null
+				
+				# Data packing
+				DIR=`dirname "$LINE"`
+				if [ ! -e "$DIR" ]; then
+					# go one level down, because render result could be a 
+					# sequence in dir which is not exists
+					DIR=`dirname "$DIR"`
+				fi
+				EXTPROJECTROOT=`get_project_root "$DIR"`
+				if [[ "$EXTPROJECTROOT" != "" ]] && ( echo $LINE | grep -E "^${EXTPROJECTROOT}/render" > /dev/null ); then 
+					true # no files from render directory!
+				else
+					echo $LINE >>"${PACKFILE}.lst"
+				fi
+				
 				LINE="$(relpath "`pwd -P`" "$LINE")"
 				ESCAPED_LINE=`escape "$LINE"`
 				DEPS="${DEPS}${ESCAPED_LINE} "
@@ -298,10 +322,16 @@ write_rules(){
 		PENDINGTARGETS_CACHE=`sed '4q;d' "$CACHEFILE"`
 		while read TARGETCANDIDATE; do
 			if [ ! -z "$TARGETCANDIDATE" ]; then
+				DOWRITE_CACHE=${TARGETCANDIDATE%%.*}
+				TARGETCANDIDATE=${TARGETCANDIDATE#*.}
 				pushd "`dirname "$TARGET"`" >/dev/null
 				TARGETCANDIDATE="`abspath "$TARGETCANDIDATE"`"
 				popd >/dev/null
-				PENDINGTARGETS="${PENDINGTARGETS}${TARGETCANDIDATE}\n"
+				
+				# Data packing
+				echo $TARGETCANDIDATE >>"${PACKFILE}.lst"
+				
+				PENDINGTARGETS="${PENDINGTARGETS}${DOWRITE_CACHE}.${TARGETCANDIDATE}\n"
 			fi
 		done < <( echo -e "$PENDINGTARGETS_CACHE" )
 	elif [ ! -f "$MODULES_PATH/mod_$EXT" ]; then
@@ -385,11 +415,11 @@ write_rules(){
 					
 					if [ -e "$TARGETCANDIDATE" ] && [ ! -d "$TARGETCANDIDATE" ]; then
 						#TARGETCANDIDATE=`echo "$TARGETCANDIDATE"| sed -e 's/ /\\\\\\\\ /g'`
-						if ! ( echo $PENDINGTARGETS | grep -E "\\\\n${TARGETCANDIDATE}\\\\n" > /dev/null ); then
-							PENDINGTARGETS="${PENDINGTARGETS}${TARGETCANDIDATE}\n"
+						if ! ( echo $PENDINGTARGETS | grep -E "\\\\n1.${TARGETCANDIDATE}\\\\n" > /dev/null ); then
+							PENDINGTARGETS="${PENDINGTARGETS}1.${TARGETCANDIDATE}\n"
 
 							pushd "`dirname "$TARGET"`" >/dev/null
-							PENDINGTARGETS_CACHE="${PENDINGTARGETS_CACHE}$(relpath "`pwd -P`" "$TARGETCANDIDATE")\n"
+							PENDINGTARGETS_CACHE="${PENDINGTARGETS_CACHE}1.$(relpath "`pwd -P`" "$TARGETCANDIDATE")\n"
 							popd >/dev/null
 						fi
 					fi
@@ -399,11 +429,26 @@ write_rules(){
 						echo "   WARNING: '$LINE' is not exists and not produced by any target."
 						echo "            Skipping."
 					else
-						#pushd `dirname $LINE` >/dev/null
-						#DEPDIR=`pwd`
-						#popd >/dev/null
-						#DEPS="$DEPS $(relpath `pwd` $DEPDIR)/`basename $LINE`"
-						#LINE=`echo "$LINE"| sed -e "s/ /\\\\\\ /g"`
+					
+						# Data packing
+						echo $(abspath "$LINE") >>"${PACKFILE}.lst"
+						
+						LINE_EXT=${LINE##*.}
+						if [ -f "$MODULES_PATH/mod_$LINE_EXT" ]; then
+							TARGETCANDIDATE=`abspath "${LINE}"`
+							if ! ( echo $PENDINGTARGETS | grep -E "\\\\n0.${TARGETCANDIDATE}\\\\n" > /dev/null ); then
+								PENDINGTARGETS="${PENDINGTARGETS}0.${TARGETCANDIDATE}\n"
+								pushd "`dirname "$TARGET"`" >/dev/null
+								PENDINGTARGETS_CACHE="${PENDINGTARGETS_CACHE}0.$(relpath "`pwd -P`" "$TARGETCANDIDATE")\n"
+								popd >/dev/null
+							fi
+							pushd "$DEPDIR" >/dev/null
+							RENDERPREFIX=$(pwd -P | sed -e "s|$EXTPROJECTROOT||")
+							[ -d "$EXTPROJECTROOT/render${RENDERPREFIX}" ] || mkdir -p "$EXTPROJECTROOT/render${RENDERPREFIX}"
+							popd  >/dev/null
+							LINE=$(relpath "`pwd -P`" "$EXTPROJECTROOT/render${RENDERPREFIX}")/`basename "$LINE"`.dep
+						fi
+						
 						ESCAPED_LINE=`escape "$LINE"`
 						if ! ( echo $DEPS | grep -F " $ESCAPED_LINE " > /dev/null ); then
 							DEPS="${DEPS}${ESCAPED_LINE} "
@@ -414,8 +459,6 @@ write_rules(){
 							popd >/dev/null
 						fi
 						
-						# Data packing
-						echo $(abspath "$LINE") >>"${PACKFILE}.lst"
 					fi
 				fi
 			fi
@@ -427,6 +470,15 @@ write_rules(){
 		echo $PENDINGTARGETS_CACHE >> "$CACHEFILE"
 		fi
 	fi
+	
+	if [ $DOWRITE == 0 ]; then
+		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
+		echo "	[ ! -e \"$RENDERPATH\" ] || rm \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo ".PHONY: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
+		echo "clean: `escape "$RENDERPATH"`-clean" >> "$MAKEFILE"
+	else
 		
 	export DEPS
 	
@@ -440,7 +492,7 @@ write_rules(){
 		bash -e "$MODULES_PATH/mod_$EXT" rules
 	fi
 	
-	if [[ "$2" == 'deps' ]]; then
+	if [[ "$3" == 'deps' ]]; then
 		echo ".PHONY: deps" >> "$MAKEFILE"
 		echo "deps: $DEPS" >> "$MAKEFILE"
 	fi
@@ -452,7 +504,7 @@ write_rules(){
 	echo $(abspath "$TARGET") >>"${PACKFILE}.lst"
 	
 	# Stereo rendering
-	if [[ "$2" == 'stereo' ]]; then
+	if [[ "$3" == 'stereo' ]]; then
 		
 		RENDERPATH_STEREO=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`-stereo
 		RENDERPATH_AUDIO="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.mp2|"`"
@@ -478,7 +530,7 @@ write_rules(){
 		echo "	fi" >> "$MAKEFILE"
 	fi
 	# "Snapshot" rule
-	if [[ "$2" == 'snapshot' ]]; then
+	if [[ "$3" == 'snapshot' ]]; then
 		[ -d "$PROJECTROOT/snapshots${RENDERPREFIX}" ] || mkdir -p "$PROJECTROOT/snapshots${RENDERPREFIX}"
 		
 		# SCM detection
@@ -499,12 +551,16 @@ write_rules(){
 		fi
 		echo ".PHONY: snapshot" >> "$MAKEFILE"
 	fi
+	fi  # DOWRITE == 1
 	
 	while read TARGET; do
 		if [ ! -z "$TARGET" ];then
-			write_rules "$TARGET"
+			DOWRITE=${TARGET%%.*}
+			TARGET=${TARGET#*.}
+			write_rules "$TARGET" $DOWRITE
 		fi
 	done < <( echo -e "$PENDINGTARGETS" )
+	
 	fi
 }
 
@@ -568,14 +624,14 @@ if [ ! -f "$1" ]; then
 	exit 1
 fi
 
-if [[ "$2" == 'snapshot' ]]; then
+if [[ "$3" == 'snapshot' ]]; then
 	if ! ( which ffmpeg > /dev/null 2>&1 ); then
 		echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
 		exit 1
 	fi
 fi
 
-if [[ "$2" == 'stereo' ]]; then
+if [[ "$3" == 'stereo' ]]; then
 	# Force output format to mpg
 	OPT_FORMAT="mpg"
 	# Check requirements
@@ -613,7 +669,7 @@ echo "       First stage: Analyzing files"
 echo "==============================================="
 echo
 
-write_rules "$1" "$2" "$OPT_FORMAT"
+write_rules "$1" 1 "$2" "$OPT_FORMAT"
 echo ".PHONY: clean" >> "$MAKEFILE"
 echo ".PHONY: pack" >> "$MAKEFILE"
 

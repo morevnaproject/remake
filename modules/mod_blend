@@ -332,12 +332,7 @@ deps(){
 	
 	SCRIPTPATH="$(abspath "${0}")_deps"
 	
-	blender -b "`abspath \"$TARGET\"`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //' | 	while read LINE; do
-		echo $LINE
-		if ( echo $LINE | grep -E '.blend$' >/dev/null); then
-			deps "$LINE"
-		fi
-	done
+	blender -b "`abspath \"$TARGET\"`" -P "$SCRIPTPATH" 2>&1 | grep -E "^dependency: " | sed -e 's/^dependency: //'
 }
 
 rules(){

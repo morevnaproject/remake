@@ -90,32 +90,14 @@ if ($0~"<param name=\".*\" use=\".*#.*\"/>") {print $0}
 	popd > /dev/null
 }
 
-get_unparsed(){
-	echo "$ALLDEPS" | grep -E "\.sif(|z)$" | while read LINE; do
-		if ! ( echo "$SIFS" | grep -F "?$LINE?" >/dev/null ); then
-			echo "$LINE"
-			exit
-		fi
-	done
-}
-
 deps(){
 	if [ ! -z $1 ]; then 
 		TARGET=$1
 	fi
 	
-	SIFS=""
-	ALLDEPS=''
+	DEPS=`parse "$TARGET"`
 	
-	while [ ! -z "$TARGET" ];do
-		#echo "parsing `abspath $TARGET`..."
-		SIFS=$(echo -e "$SIFS\n"?`abspath "$TARGET"`?)
-		DEPS=`parse "$TARGET"`
-		ALLDEPS=`echo -e "$ALLDEPS\n$DEPS"`
-		TARGET=`get_unparsed`
-	done
-	
-	echo "$ALLDEPS" | sed '/^$/d'
+	echo "$DEPS" | sed '/^$/d'
 }
 
 rules(){
