@@ -60,8 +60,10 @@ if (x==1) {
 }
 if ($0~"</param>") {x=0}
 if ($0~"<param name=\".*\" use=\".*#.*\"/>") {print $0}
+if ($0~"<switch .*link_on=\".*#:.*\".*>") {print gensub(/.*link_on=\"([^#]*)#:.*\".*/, "<switch link_on=\"\\1\">", "g", $0)}
+if ($0~"<switch .*switch=\".*#:.*\".*>") {print gensub(/.*switch=\"([^#]*)#:.*\".*/, "<switch switch=\"\\1\">", "g", $0)}
 }')
-	DEPS=$(echo -e "$DEPS" | sed -e "s/.*<string.*>\(.*\)<\/string>.*/\1/" -e "s/.*<param name=\".*\" use=\"\(.*\)#.*\"\/>.*/\1/p")
+	DEPS=$(echo -e "$DEPS" | sed -e "s/.*<string.*>\(.*\)<\/string>.*/\1/" -e "s/<switch link_on=\"\(.*\)\">/\1/" -e "s/<switch switch=\"\(.*\)\">/\1/" -e "s/.*<param name=\".*\" use=\"\(.*\)#.*\"\/>.*/\1/p" )
 	if [ ! -z "$DEPS" ]; then
 		while read LINE; do
 			
