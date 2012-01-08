@@ -394,7 +394,7 @@ write_rules(){
 							LINE=""
 						else
 							if [ ! -e "$TARGETCANDIDATE" ]; then
-								[ -z $DEBUG ] || echo "   ERROR: Not found!"
+								echo "   ERROR: Not found!"
 								LINE=""
 							else
 								[ -z $DEBUG ] || echo "         Successfull."
@@ -402,6 +402,8 @@ write_rules(){
 							fi
 						fi
 					fi
+					
+					if [ ! -z "$LINE" ]; then
 					
 					ESCAPED_LINE=`escape "$LINE"`
 					if ! ( echo "$DEPS" | grep -F " $ESCAPED_LINE " > /dev/null ); then
@@ -423,6 +425,8 @@ write_rules(){
 							popd >/dev/null
 						fi
 					fi
+					
+					fi # ! -z "$LINE"
 				else
 					if [ ! -e "$LINE" ]; then
 						# Report non-existing files
