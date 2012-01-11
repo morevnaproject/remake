@@ -4,7 +4,7 @@ set +e
 
 SCRIPT_PATH=$(cd `dirname $0`; pwd)
 
-BINARY_FILES="remake remake-gui"
+BINARY_FILES="remake remake-gui remake-manager"
 LIB_FILES=`find modules -depth`
 DATA_FILES=`find project -depth`
 DOC_FILES="LICENSE README"
