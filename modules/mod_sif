@@ -19,6 +19,15 @@ check(){
 EOF
 		exit 1
 	fi
+	if ! ( which gawk > /dev/null 2>&1 ); then
+		cat <<EOF
+   FATAL: Can't find 'gawk'!
+   
+          Please install 'gawk' package using software manager of 
+          your linux distributive.
+EOF
+		exit 1
+	fi
 	if [[ $FORMAT == 'mpg' ]]; then
 		if ! ( which ffmpeg > /dev/null 2>&1 ); then
 			cat <<EOF
