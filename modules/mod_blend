@@ -275,6 +275,8 @@ EOF
 EOF
 			exit 1
 		fi
+	else # [ -z "$BLENDER_VERSION" ]
+		echo "BLENDER_VERSION=${BLENDER_VERSION_FOUND}" >> "$PROJECTROOT/remake.conf"
 	fi
 	
 	# Check for FFMPEG support compiled in

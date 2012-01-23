@@ -24,6 +24,13 @@ if [ ! -d "$DATA_PATH/project" ]; then
 fi
 export DATA_PATH
 
+TESTDATA_PATH=$SCRIPT_PATH/tests
+if [ ! -d "$TESTDATA_PATH" ]; then
+	#fix path for local installation
+	TESTDATA_PATH=$SCRIPT_PATH/../share/remake/tests
+fi
+export TESTDATA_PATH
+
 usage()
 {
 cat << EOF
@@ -53,8 +60,29 @@ if [ -e "$1" ]; then
 	exit 1
 fi
 cp -rf $DATA_PATH/project "$1"
-# TODO: check blender version and adapt.
+
+# Check blender version and adapt project files
+echo
+echo "Checking dependencies..."
+
+cd "$1"
+export PROJECTROOT="`pwd`"
+export BLENDER_VERSION=""
+bash "$MODULES_PATH/mod_blend" check || ( cd .. ; rm -rf "$1"; exit 1 )
+
+BLENDER_VERSION_FOUND=`blender --version`
+BLENDER_VERSION_FOUND=${BLENDER_VERSION_FOUND:8:4}
+echo "BLENDER_VERSION=${BLENDER_VERSION_FOUND}" >> "$PROJECTROOT/remake.conf"
+if [[ ${BLENDER_VERSION_FOUND:0:3} == '2.4' ]]; then
+	rm project.blend
+	mv project-2.4x.blend project.blend
+else
+	rm project-2.4x.blend
+fi
+
+echo
 echo "Project created."
+echo
 }
 
 if [ -z "$1" ]; then
