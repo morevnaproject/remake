@@ -14,20 +14,29 @@ popd  > /dev/null
 MODULES_PATH=$SCRIPT_PATH/modules
 if [ ! -d "$MODULES_PATH" ]; then
 	#fix path for local installation
-	MODULES_PATH=$SCRIPT_PATH/../lib/remake/modules
+	MODULES_PATH="$SCRIPT_PATH/../lib/remake/modules"
+	pushd "$MODULES_PATH" > /dev/null
+	MODULES_PATH="`pwd`"
+	popd > /dev/null
 fi
 
 DATA_PATH=$SCRIPT_PATH
 if [ ! -d "$DATA_PATH/project" ]; then
 	#fix path for local installation
-	DATA_PATH=$SCRIPT_PATH/../share/remake
+	DATA_PATH="$SCRIPT_PATH/../share/remake"
+	pushd "$DATA_PATH" > /dev/null
+	DATA_PATH="`pwd`"
+	popd > /dev/null
 fi
 export DATA_PATH
 
 TESTDATA_PATH=$SCRIPT_PATH/tests
 if [ ! -d "$TESTDATA_PATH" ]; then
 	#fix path for local installation
-	TESTDATA_PATH=$SCRIPT_PATH/../share/remake/tests
+	TESTDATA_PATH="$SCRIPT_PATH/../share/remake/tests"
+	pushd "$TESTDATA_PATH" > /dev/null
+	TESTDATA_PATH="`pwd`"
+	popd > /dev/null
 fi
 export TESTDATA_PATH
 
