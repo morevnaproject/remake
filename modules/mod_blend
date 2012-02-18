@@ -12,7 +12,7 @@ abspath(){
 }
 
 renderscript(){
-	[ ! -d "`dirname "$RENDERSCRIPT"`" ] || mkdir -p "`dirname "$RENDERSCRIPT"`"
+	[ -d "`dirname "$RENDERSCRIPT"`" ] || mkdir -p "`dirname "$RENDERSCRIPT"`"
 	if [ -z $UPDATE ]; then
 		UPDATE=0
 	fi
