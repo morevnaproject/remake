@@ -13,7 +13,7 @@
 
 export EMAIL='ksee.zelgadis@gmail.com'
 export VERSION='0.4'
-export RELEASE='0.beta'
+export RELEASE='1'
 export SCRIPTDIR=$(cd `dirname $0`; pwd)
 export SOURCEDIR=`dirname "$SCRIPTDIR"`
 
