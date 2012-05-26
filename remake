@@ -251,6 +251,8 @@ write_rules(){
 	export HEIGHT
 	export FPS
 	export SINGLE
+	export FROM
+	export TO
 	export UPDATE
 	export AUDIO_RATE
 	

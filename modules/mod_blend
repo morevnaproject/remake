@@ -356,6 +356,12 @@ rules(){
 		echo "	blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 0 -F $BLENDERFORMAT -t 0 $RANGE 2>&1 | grep -E '^Saved: '" >> "$MAKEFILE"
 		echo "	mv \"${RENDERPATH}-`printf %06d $SINGLE`\" \"$RENDERPATH\"" >> "$MAKEFILE"
 	else
+		if [ ! -z $FROM ]; then
+			FROM=" -s $FROM "
+		fi
+		if [ ! -z $TO ]; then
+			TO=" -e $TO "
+		fi
 		RANGE="-a"
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
 			OUTPUT="\`pwd\`/$RENDERPATH/file.####"
@@ -371,7 +377,7 @@ rules(){
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
 			echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
 		fi
-		echo "	-blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 1 -F $BLENDERFORMAT -t 0 $RANGE 2>&1 | grep -E '^Saved: '" >> "$MAKEFILE"
+		echo "	-blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 1 -F $BLENDERFORMAT -t 0 $FROM $TO $RANGE 2>&1 | grep -E '^Saved: '" >> "$MAKEFILE"
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
 			echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
 			echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
