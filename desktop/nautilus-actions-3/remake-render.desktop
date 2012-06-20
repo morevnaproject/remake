@@ -1,10 +1,8 @@
 
 [Desktop Entry]
 Type=Action
-ToolbarLabel[ru_RU]=Remake - Render
-ToolbarLabel[ru]=Remake - Render
-Name[ru_RU]=Remake - Render
-Name[ru]=Remake - Render
+ToolbarLabel=Remake - Render
+Name=Remake - Render
 Profiles=profile-zero;
 
 [X-Action-Profile profile-zero]
@@ -12,5 +10,4 @@ SelectionCount==1
 Matchcase=false
 Basenames=*.*;
 Exec=remake-gui %f
-Name[ru_RU]=Default profile
-Name[ru]=Default profile
+Name=Default profile

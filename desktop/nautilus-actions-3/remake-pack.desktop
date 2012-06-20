@@ -1,15 +1,12 @@
 
 [Desktop Entry]
 Type=Action
-Name[ru_RU]=Remake - Pack
-Name[ru]=Remake - Pack
-ToolbarLabel[ru_RU]=Remake - Pack
-ToolbarLabel[ru]=Remake - Pack
+Name=Remake - Pack
+ToolbarLabel=Remake - Pack
 Profiles=profile-zero;
 
 [X-Action-Profile profile-zero]
-Name[ru_RU]=Default profile
-Name[ru]=Default profile
+Name=Default profile
 Exec=remake-gui %f pack
 Basenames=*.*;
 Matchcase=false
