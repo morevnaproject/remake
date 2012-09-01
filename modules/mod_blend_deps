@@ -23,6 +23,16 @@ except SyntaxError:
           w(sep)
           w(str(a))
       w(kwd.get("end", "\n"))
+      
+      
+def get_project_root(path):
+	if os.path.exists(os.path.join(path,"remake.conf")):
+		return path
+	else:
+		if path == "/":
+			return ""
+		else:
+			return get_project_root(os.path.dirname(path))
 
 try:
 	# blender 2.4x stuff
@@ -39,12 +49,14 @@ except:
 	# blender 2.56 & 2.57 crashes when using "bpy.utils.blend_paths(1)", 
 	# so we forced to fallback to relative paths:
 	paths = bpy.utils.blend_paths(0)
-	list = []
-	projectroot = os.environ['PROJECTROOT']
-	if projectroot == '':
-		Print("No PROJECTROOT variable defined!")
-		sys.exit(1)
-	renderdir=os.path.join(projectroot,'render')
+	outputlist = []
+	projectroots = []
+	
+	#projectroot = os.environ['PROJECTROOT']
+	#if projectroot == '':
+	#	Print("No PROJECTROOT variable defined!")
+	#	sys.exit(1)
+	#renderdir=os.path.join(projectroot,'render')
 	
 	for f in paths:
 		if f!="":
@@ -56,41 +68,54 @@ except:
 			
 			f=os.path.abspath(bpy.path.abspath(f))
 			
-			if f.startswith(renderdir):
+			projectroot = ""
+			for r in projectroots:
+				if f.startswith(os.path.join(r,"render")):
+					projectroot = r
+					break
+			if projectroot=="":
+				projectroot = get_project_root(os.path.dirname(f))
+				if projectroot != "":
+					projectroots.append(projectroot)
+				
+			if projectroot!="" and f.startswith(os.path.join(projectroot,"render")):
+				
+				renderdir = os.path.join(projectroot,"render")
+				
 				# f = /projectroot/render/path.ext.png/file000x.png
 				# or
 				# f = /projectroot/render/path.ext.png
-				
+			
 				f2 = f.replace(renderdir,'',1)[1:]
 				# f2 = path.ext.png/file000x.png
 				# or
 				# f2 = path.ext.png
-				
+			
 				f2 = os.path.splitext(f2)[0]
 				f2 = os.path.join(projectroot,f2)
-				
+			
 				# f2 = /projectroot/path.ext.png/file000x
 				# or
 				# f2 = /projectroot/path.ext
 				
 				if not os.path.exists(f2):
 					# f2 = /projectroot/path.ext.png/file000x
-					
+				
 					f = os.path.dirname(f)
 					# f = /projectroot/render/path.ext.png
-					
-					if not f in list:
-						list.append(f)
+				
+					if not f in outputlist:
+						outputlist.append(f)
 
 				else:
 					# f2 = /projectroot/path.ext
-					
-					if not f in list:
-						list.append(f)
 				
+					if not f in outputlist:
+						outputlist.append(f)
+
 			else:
-				if not f in list:
-					list.append(f)
+				if not f in outputlist:
+					outputlist.append(f)
 	
-	for f in list:
+	for f in outputlist:
 		Print("dependency: %s" % f)
