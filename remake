@@ -457,10 +457,10 @@ write_rules(){
 								popd >/dev/null
 							fi
 							pushd "$DEPDIR" >/dev/null
-							RENDERPREFIX=$(pwd -P | sed -e "s|$EXTPROJECTROOT||")
-							[ -d "$EXTPROJECTROOT/render${RENDERPREFIX}" ] || mkdir -p "$EXTPROJECTROOT/render${RENDERPREFIX}"
+							DEP_RENDERPREFIX=$(pwd -P | sed -e "s|$EXTPROJECTROOT||")
+							[ -d "$EXTPROJECTROOT/render${DEP_RENDERPREFIX_DEP}" ] || mkdir -p "$EXTPROJECTROOT/render${DEP_RENDERPREFIX}"
 							popd  >/dev/null
-							LINE=$(relpath "`pwd -P`" "$EXTPROJECTROOT/render${RENDERPREFIX}")/`basename "$LINE"`.dep
+							LINE=$(relpath "`pwd -P`" "$EXTPROJECTROOT/render${DEP_RENDERPREFIX}")/`basename "$LINE"`.dep
 						fi
 						
 						ESCAPED_LINE=`escape "$LINE"`
