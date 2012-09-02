@@ -307,23 +307,25 @@ write_rules(){
 				LINE="`abspath "$LINE"`"
 				popd >/dev/null
 				
-				# Data packing
-				DIR=`dirname "$LINE"`
-				if [ ! -e "$DIR" ]; then
-					# go one level down, because render result could be a 
-					# sequence in dir which is not exists
-					DIR=`dirname "$DIR"`
-				fi
-				EXTPROJECTROOT=`get_project_root "$DIR"`
-				if [[ "$EXTPROJECTROOT" != "" ]] && ( echo $LINE | grep -E "^${EXTPROJECTROOT}/render" > /dev/null ); then 
-					true # no files from render directory!
-				else
-					echo $LINE >>"${PACKFILE}.lst"
-				fi
+				if [ -e "$LINE" ]; then    #it's possible the file isn't exists anymore
+					# Data packing
+					DIR=`dirname "$LINE"`
+					if [ ! -e "$DIR" ]; then
+						# go one level down, because render result could be a 
+						# sequence in dir which is not exists
+						DIR=`dirname "$DIR"`
+					fi
+					EXTPROJECTROOT=`get_project_root "$DIR"`
+					if [[ "$EXTPROJECTROOT" != "" ]] && ( echo $LINE | grep -E "^${EXTPROJECTROOT}/render" > /dev/null ); then 
+						true # no files from render directory!
+					else
+						echo $LINE >>"${PACKFILE}.lst"
+					fi
 				
-				LINE="$(relpath "`pwd -P`" "$LINE")"
-				ESCAPED_LINE=`escape "$LINE"`
-				DEPS="${DEPS}${ESCAPED_LINE} "
+					LINE="$(relpath "`pwd -P`" "$LINE")"
+					ESCAPED_LINE=`escape "$LINE"`
+					DEPS="${DEPS}${ESCAPED_LINE} "
+				fi
 			fi
 		done < <( echo -e "$DEPS_CACHE" )
 		
