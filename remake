@@ -411,6 +411,11 @@ write_rules(){
 								LINE=`dirname "$LINE"`
 							fi
 						fi
+					else
+						if [ -d "$TARGETCANDIDATE" ]; then
+							echo "   ERROR: Target cannot be a directory!"
+							LINE=""
+						fi
 					fi
 					
 					if [ ! -z "$LINE" ]; then
