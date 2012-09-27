@@ -353,7 +353,7 @@ rules(){
 		OUTPUT="\`pwd\`/${RENDERPATH}-######"
 		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
-		echo "	blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 0 -F $BLENDERFORMAT -t 1 $RANGE 2>&1 | grep -E '^Saved: '" >> "$MAKEFILE"
+		echo "	blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 0 -F $BLENDERFORMAT -t 0 $RANGE 2>&1 | grep -E '^Saved: '" >> "$MAKEFILE"
 		echo "	mv \"${RENDERPATH}-`printf %06d $SINGLE`\" \"$RENDERPATH\"" >> "$MAKEFILE"
 	else
 		if [ ! -z $FROM ]; then
