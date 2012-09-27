@@ -141,7 +141,7 @@ rules(){
 		echo "`escape "$RENDERPATH"`/file.lst: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
 		echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
-		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE -w $WIDTH -h $HEIGHT $OPT_THREADS \"$TARGET\"" >> "$MAKEFILE"
+		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE $OPTWIDTH $OPTHEIGHT $OPT_THREADS \"$TARGET\"" >> "$MAKEFILE"
 		echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
 		echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
 	fi
