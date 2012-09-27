@@ -125,13 +125,15 @@ rules(){
 	# Get image dimensions from file if it's unspecified
 	[ -z $WIDTH ] && OPTWIDTH="" || OPTWIDTH="-w $WIDTH"
 	[ -z $HEIGHT ] && OPTHEIGHT="" || OPTHEIGHT="-h $HEIGHT"
+	
+	[ -z $OPT_THREADS] || OPT_THREADS="-T $OPT_THREADS"
 
 	if [ ! -z $SINGLE ]; then
 		RANGE="--time ${SINGLE}f"
 		OUTPUT=$RENDERPATH
 		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
-		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE $OPTWIDTH $OPTHEIGHT \"$TARGET\"" >> "$MAKEFILE"
+		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE $OPTWIDTH $OPTHEIGHT $OPT_THREADS \"$TARGET\"" >> "$MAKEFILE"
 	else
 		OUTPUT="$RENDERPATH/file.$FORMAT"
 		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
@@ -139,7 +141,7 @@ rules(){
 		echo "`escape "$RENDERPATH"`/file.lst: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
 		echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
-		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE -w $WIDTH -h $HEIGHT \"$TARGET\"" >> "$MAKEFILE"
+		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE -w $WIDTH -h $HEIGHT $OPT_THREADS \"$TARGET\"" >> "$MAKEFILE"
 		echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
 		echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
 	fi

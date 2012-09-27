@@ -70,10 +70,16 @@ OPTIONS:
   -h            Show this message.
   -i            Ignore all errors in commands executed to remake 
                 files.
+  -j <jobs>     Sets the amount of rendering jobs to be run 
+                in parallel.  Use zero to set value equal to 
+                the number of CPUs available.
+                Default value: 1.
   -k            Keep Makefile so you can skip dependency detection 
                 and re-invoke rendering by typing 'make'.
-  -t <threads>  Specify the amount of rendering jobs to be run 
-                in parallel. Use zero for no limit.
+  -t <threads>  Sets the amount of threads to be used by each 
+                application (job). Use zero to set value equal to 
+                the number of CPUs available.
+                Default value: 0.
   -z            Don't use cache when retrieving dependencies.
 
 COMMANDS:
@@ -536,8 +542,8 @@ write_rules(){
 		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
 		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
 		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -t $THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -t $THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -j $OPT_JOBS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -j $OPT_JOBS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
 		echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
 		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
@@ -587,7 +593,8 @@ write_rules(){
 OPT_KEEP=0
 OPT_NOCACHE=0
 OPT_IGNORE_ERRORS=''
-THREADS=1
+OPT_JOBS=1
+OPT_THREADS=0
 CAMERA=""
 while getopts "c:f:hikt:z" OPTION
 do
@@ -605,13 +612,19 @@ do
          i)
              OPT_IGNORE_ERRORS='-i'
              ;;
+         j)
+             OPT_JOBS="$OPTARG"
+             if [[ $OPT_JOBS == 0 ]]; then
+                OPT_JOBS=''
+             fi
+             ;;
          k)
              OPT_KEEP=1
              ;;
          t)
-             THREADS="$OPTARG"
-             if [[ $THREADS == 0 ]]; then
-                THREADS=''
+             OPT_THREADS="$OPTARG"
+             if [[ $OPT_THREADS == 0 ]]; then
+                OPT_THREADS=`egrep "siblings"  /proc/cpuinfo | sort -u | cut -d`
              fi
              ;;
          z)
@@ -625,7 +638,8 @@ do
 done
 
 export CAMERA
-export THREADS
+export OPT_JOBS
+export OPT_THREADS
 
 shift $(($OPTIND - 1))
 
@@ -725,5 +739,5 @@ echo "==============================================="
 echo
 
 echo "Running make..."
-make -f "$MAKEFILE" -j $THREADS $OPT_IGNORE_ERRORS $2
+make -f "$MAKEFILE" -j $OPT_JOBS $OPT_IGNORE_ERRORS $2
 do_cleanup
