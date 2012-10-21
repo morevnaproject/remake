@@ -76,6 +76,11 @@ OPTIONS:
                 Default value: 1.
   -k            Keep Makefile so you can skip dependency detection 
                 and re-invoke rendering by typing 'make'.
+  -l            Specifies  that  no new jobs (commands) should be 
+                started if there are others jobs running and the 
+                load average is at least load (a floating-point 
+                number). With no argument, removes a previous load
+                limit.
   -t <threads>  Sets the amount of threads to be used by each 
                 application (job). Use zero to set value equal to 
                 the number of CPUs available.
@@ -545,8 +550,8 @@ write_rules(){
 		
 		[ ! -z $OPT_JOBS ] || OPT_JOBS=0
 		
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -j $OPT_JOBS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -j $OPT_JOBS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
 		echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
 		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
@@ -597,9 +602,10 @@ OPT_KEEP=0
 OPT_NOCACHE=0
 OPT_IGNORE_ERRORS=''
 OPT_JOBS=1
+OPT_LOAD_LIMIT=''
 OPT_THREADS=0
 CAMERA=""
-while getopts "c:f:hij:kt:z" OPTION
+while getopts "c:f:hij:kl:t:z" OPTION
 do
      case $OPTION in
          c)
@@ -623,6 +629,9 @@ do
              ;;
          k)
              OPT_KEEP=1
+             ;;
+         l)
+             OPT_LOAD_LIMIT="$OPTARG"
              ;;
          t)
              OPT_THREADS="$OPTARG"
@@ -742,5 +751,5 @@ echo "==============================================="
 echo
 
 echo "Running make..."
-make -f "$MAKEFILE" -j $OPT_JOBS $OPT_IGNORE_ERRORS $2
+make -f "$MAKEFILE" -j $OPT_JOBS -l $OPT_LOAD_LIMIT $OPT_IGNORE_ERRORS $2
 do_cleanup
