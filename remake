@@ -350,10 +350,15 @@ write_rules(){
 				TARGETCANDIDATE="`abspath "$TARGETCANDIDATE"`"
 				popd >/dev/null
 				
-				# Data packing
-				echo $TARGETCANDIDATE >>"${PACKFILE}.lst"
+				if [[ ${DOWRITE_CACHE} == 1 ]] && [ ! -e "$TARGETCANDIDATE" ]; then
+					echo "   WARNING: '$TARGETCANDIDATE' is not exists and not produced by any target."
+					echo "            Skipping."
+				else
+					# Data packing
+					echo $TARGETCANDIDATE >>"${PACKFILE}.lst"
 				
-				PENDINGTARGETS="${PENDINGTARGETS}${DOWRITE_CACHE}.${TARGETCANDIDATE}\n"
+					PENDINGTARGETS="${PENDINGTARGETS}${DOWRITE_CACHE}.${TARGETCANDIDATE}\n"
+				fi
 			fi
 		done < <( echo -e "$PENDINGTARGETS_CACHE" )
 	elif [ ! -f "$MODULES_PATH/mod_$EXT" ]; then
