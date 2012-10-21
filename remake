@@ -550,8 +550,8 @@ write_rules(){
 		
 		[ ! -z $OPT_JOBS ] || OPT_JOBS=0
 		
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
 		echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
 		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
