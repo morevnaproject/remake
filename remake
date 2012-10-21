@@ -542,6 +542,9 @@ write_rules(){
 		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
 		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
 		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
+		
+		[ ! -z $OPT_JOBS ] || OPT_JOBS=0
+		
 		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -j $OPT_JOBS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -j $OPT_JOBS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
@@ -596,7 +599,7 @@ OPT_IGNORE_ERRORS=''
 OPT_JOBS=1
 OPT_THREADS=0
 CAMERA=""
-while getopts "c:f:hikt:z" OPTION
+while getopts "c:f:hij:kt:z" OPTION
 do
      case $OPTION in
          c)

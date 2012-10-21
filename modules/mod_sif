@@ -126,7 +126,7 @@ rules(){
 	[ -z $WIDTH ] && OPTWIDTH="" || OPTWIDTH="-w $WIDTH"
 	[ -z $HEIGHT ] && OPTHEIGHT="" || OPTHEIGHT="-h $HEIGHT"
 	
-	[ -z $OPT_THREADS] || OPT_THREADS="-T $OPT_THREADS"
+	[ -z $OPT_THREADS ] || OPT_THREADS="-T $OPT_THREADS"
 
 	if [ ! -z $SINGLE ]; then
 		RANGE="--time ${SINGLE}f"
