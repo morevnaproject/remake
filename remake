@@ -333,10 +333,44 @@ write_rules(){
 					else
 						echo $LINE >>"${PACKFILE}.lst"
 					fi
-				
-					LINE="$(relpath "`pwd -P`" "$LINE")"
-					ESCAPED_LINE=`escape "$LINE"`
-					DEPS="${DEPS}${ESCAPED_LINE} "
+					
+					if ( echo $LINE | grep -E "^${EXTPROJECTROOT}/render" > /dev/null ); then
+						# check if source file of rendering still exists
+						
+						# get_source_path() begin
+						TARGETCANDIDATE=`echo "${LINE%.*}" | sed -e "s|^${EXTPROJECTROOT}/render/|${EXTPROJECTROOT}/|" `
+						if [ ! -e "$TARGETCANDIDATE" ]; then
+							TMP=$TARGETCANDIDATE
+							TARGETCANDIDATE=`dirname "${TARGETCANDIDATE}"`
+							TARGETCANDIDATE=${TARGETCANDIDATE%.*}
+							[ -z $DEBUG ] || echo "   INFO: Trying to fix '$TMP' to '$TARGETCANDIDATE'." 2>&1
+	
+							if [ -d "$TARGETCANDIDATE" ]; then
+								[ -z $DEBUG ] || echo "         ERROR: Can't define target from directory." 2>&1
+								LINE=""
+							else
+								if [ ! -e "$TARGETCANDIDATE" ]; then
+									echo "   ERROR: Not found!" 2>&1
+									LINE=""
+								else
+									[ -z $DEBUG ] || echo "         Successfull." 2>&1
+									LINE=`dirname "$LINE"`
+								fi
+							fi
+						else
+							if [ -d "$TARGETCANDIDATE" ]; then
+								echo "   ERROR: Target cannot be a directory!" 2>&1
+								LINE=""
+							fi
+						fi
+						# get_source_path() end
+					fi
+					
+					if [ ! -z "$LINE" ]; then
+						LINE="$(relpath "`pwd -P`" "$LINE")"
+						ESCAPED_LINE=`escape "$LINE"`
+						DEPS="${DEPS}${ESCAPED_LINE} "
+					fi
 				fi
 			fi
 		done < <( echo -e "$DEPS_CACHE" )
@@ -389,17 +423,11 @@ write_rules(){
 					echo $(abspath "$LINE") >>"${PACKFILE}.lst"
 				fi
 			else
-				if [ -d "`dirname "$LINE"`" ]; then
-					pushd "`dirname "$LINE"`" >/dev/null
-					DEPDIR=`pwd -P`
-					popd >/dev/null
-				else
-					DEPDIR="`dirname "$LINE"`"
-				fi
-				LINE="$(relpath "`pwd -P`" "$DEPDIR")/`basename "$LINE"`"
-				#LINE=$(relpath `pwd` $LINE)
+				
+				LINE="$(relpath "`pwd -P`" "$LINE")"
 				echo "   $LINE"
-				if ( echo $DEPDIR | grep -E "^${EXTPROJECTROOT}/render" > /dev/null ); then
+				LINE=`abspath "$LINE"`
+				if ( echo $LINE | grep -E "^${EXTPROJECTROOT}/render" > /dev/null ); then
 					
 					#pushd `dirname $LINE` >/dev/null
 					#DEPDIR=`pwd`
@@ -409,34 +437,37 @@ write_rules(){
 					#LINE=`echo "$LINE"| sed -e "s/\\\\\\ / /g"`
 					[ -z $DEBUG ] || echo "   INFO: Dependency '$LINE' defines another target."
 					
-					TARGETCANDIDATE=`echo $DEPDIR/$(basename "${LINE%.*}") | sed -e "s|^${EXTPROJECTROOT}/render/|${EXTPROJECTROOT}/|" `
+					# get_source_path() begin
+					TARGETCANDIDATE=`echo "${LINE%.*}" | sed -e "s|^${EXTPROJECTROOT}/render/|${EXTPROJECTROOT}/|" `
 					if [ ! -e "$TARGETCANDIDATE" ]; then
 						TMP=$TARGETCANDIDATE
 						TARGETCANDIDATE=`dirname "${TARGETCANDIDATE}"`
 						TARGETCANDIDATE=${TARGETCANDIDATE%.*}
-						[ -z $DEBUG ] || echo "   INFO: Trying to fix '$TMP' to '$TARGETCANDIDATE'."
-						
+						[ -z $DEBUG ] || echo "   INFO: Trying to fix '$TMP' to '$TARGETCANDIDATE'." 2>&1
+	
 						if [ -d "$TARGETCANDIDATE" ]; then
-							[ -z $DEBUG ] || echo "         ERROR: Can't define target from directory."
+							[ -z $DEBUG ] || echo "         ERROR: Can't define target from directory." 2>&1
 							LINE=""
 						else
 							if [ ! -e "$TARGETCANDIDATE" ]; then
-								echo "   ERROR: Not found!"
+								echo "   ERROR: Not found!" 2>&1
 								LINE=""
 							else
-								[ -z $DEBUG ] || echo "         Successfull."
+								[ -z $DEBUG ] || echo "         Successfull." 2>&1
 								LINE=`dirname "$LINE"`
 							fi
 						fi
 					else
 						if [ -d "$TARGETCANDIDATE" ]; then
-							echo "   ERROR: Target cannot be a directory!"
+							echo "   ERROR: Target cannot be a directory!" 2>&1
 							LINE=""
 						fi
 					fi
+					# get_source_path() end
 					
 					if [ ! -z "$LINE" ]; then
 					
+					LINE="$(relpath "`pwd -P`" "$LINE")"
 					ESCAPED_LINE=`escape "$LINE"`
 					if ! ( echo "$DEPS" | grep -F " $ESCAPED_LINE " > /dev/null ); then
 						DEPS="${DEPS}${ESCAPED_LINE} "
@@ -467,18 +498,18 @@ write_rules(){
 					else
 					
 						# Data packing
-						echo $(abspath "$LINE") >>"${PACKFILE}.lst"
+						echo "$LINE" >>"${PACKFILE}.lst"
 						
 						LINE_EXT=${LINE##*.}
 						if [ -f "$MODULES_PATH/mod_$LINE_EXT" ]; then
-							TARGETCANDIDATE=`abspath "${LINE}"`
+							TARGETCANDIDATE="${LINE}"
 							if ! ( echo $PENDINGTARGETS | grep -E "\\\\n0.${TARGETCANDIDATE}\\\\n" > /dev/null ); then
 								PENDINGTARGETS="${PENDINGTARGETS}0.${TARGETCANDIDATE}\n"
 								pushd "`dirname "$TARGET"`" >/dev/null
 								PENDINGTARGETS_CACHE="${PENDINGTARGETS_CACHE}0.$(relpath "`pwd -P`" "$TARGETCANDIDATE")\n"
 								popd >/dev/null
 							fi
-							pushd "$DEPDIR" >/dev/null
+							pushd "$(dirname "$LINE")" >/dev/null
 							DEP_RENDERPREFIX=$(pwd -P | sed -e "s|$EXTPROJECTROOT||")
 							[ -d "$EXTPROJECTROOT/render${DEP_RENDERPREFIX_DEP}" ] || mkdir -p "$EXTPROJECTROOT/render${DEP_RENDERPREFIX}"
 							popd  >/dev/null
