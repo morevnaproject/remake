@@ -65,29 +65,37 @@ This script generates Makefile and renders your animation project taking all
 dependencies into account.
 
 OPTIONS:
+
+Output options
   -c <camera>   Select camera to render from (if applicable).
   -f <format>   Force output format.
-  -h            Show this message.
-  -i            Ignore all errors in commands executed to remake 
-                files.
+  -w <width>    Override default project width.
+  -h <height>   Override default project height.
+
+Parallelization options
   -j <jobs>     Sets the amount of rendering jobs to be run 
                 in parallel.  Use zero to set value equal to 
                 the number of CPUs available.
                 Default value: 1.
-  -k            Keep Makefile so you can skip dependency detection 
-                and re-invoke rendering by typing 'make'.
+  -t <threads>  Sets the amount of threads to be used by each 
+                application (job). Use zero to set value equal to 
+                the number of CPUs available.
+                Default value: 0.
   -l            Specifies  that  no new jobs (commands) should be 
                 started if there are others jobs running and the 
                 load average is at least load (a floating-point 
                 number). With no argument, removes a previous load
                 limit.
-  -t <threads>  Sets the amount of threads to be used by each 
-                application (job). Use zero to set value equal to 
-                the number of CPUs available.
-                Default value: 0.
+
+Other options
+  -i            Ignore all errors in commands executed to remake 
+                files.
+  -k            Keep Makefile so you can skip dependency detection 
+                and re-invoke rendering by typing 'make'.
   -z            Don't use cache when retrieving dependencies.
 
 COMMANDS:
+
   clean         Remove all rendered footage associated with the file.
   deps          Render all dependencies of the given file, but not 
                 the file itself.
@@ -217,7 +225,32 @@ write_rules(){
 		AUDIO_RATE=48000
 	fi
 	
-	DEPS="`escape "$CONFIGPATH"` "
+	# Override width and height if specified at commandline
+	if [ ! -z $OPT_WIDTH ]; then
+		WIDTH=$OPT_WIDTH
+	fi
+	if [ ! -z $OPT_HEIGHT ]; then
+		HEIGHT=$OPT_HEIGHT
+	fi
+	# We need to save last used render settings somewhere,
+	# because they not necesarry same as in remake.conf
+	SETTINGSPATH=$(relpath "`pwd -P`" "$PROJECTROOT/render/settings")
+	SETTINGS_CHANGED=0
+	[ -e "$SETTINGSPATH" ] || touch "$SETTINGSPATH"
+	if ! ( cat "$SETTINGSPATH" | grep -E "WIDTH=$WIDTH" >/dev/null ); then
+		SETTINGS_CHANGED=1
+	fi
+	if ! ( cat "$SETTINGSPATH" | grep -E "HEIGHT=$HEIGHT" >/dev/null ); then
+		SETTINGS_CHANGED=1
+	fi
+	if [[ $SETTINGS_CHANGED == 1 ]]; then
+		rm -f "$SETTINGSPATH"
+		echo "WIDTH=$WIDTH" >> "$SETTINGSPATH"
+		echo "HEIGHT=$HEIGHT" >> "$SETTINGSPATH"
+	fi
+	
+	
+	DEPS="`escape "$CONFIGPATH"` `escape "$SETTINGSPATH"` "
 	SINGLE=''
 	
 	export FORMAT
@@ -640,8 +673,10 @@ OPT_IGNORE_ERRORS=''
 OPT_JOBS=1
 OPT_LOAD_LIMIT=''
 OPT_THREADS=0
+OPT_HEIGHT=''
+OPT_WIDTH=''
 CAMERA=""
-while getopts "c:f:hij:kl:t:z" OPTION
+while getopts "c:f:h:ij:kl:t:w:z" OPTION
 do
      case $OPTION in
          c)
@@ -651,8 +686,7 @@ do
              OPT_FORMAT="$OPTARG"
              ;;
          h)
-             usage
-             exit 1
+             OPT_HEIGHT="$OPTARG"
              ;;
          i)
              OPT_IGNORE_ERRORS='-i'
@@ -675,6 +709,9 @@ do
                 OPT_THREADS=`egrep "siblings"  /proc/cpuinfo | sort -u | cut -d`
              fi
              ;;
+         w)
+             OPT_WIDTH="$OPTARG"
+             ;;
          z)
              OPT_NOCACHE=1
              ;;
@@ -688,6 +725,8 @@ done
 export CAMERA
 export OPT_JOBS
 export OPT_THREADS
+export OPT_HEIGHT
+export OPT_WIDTH
 
 shift $(($OPTIND - 1))
 
