@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2012 Konstantin Dmitriev
+# Copyright (c) 2012-2013 Konstantin Dmitriev
 #
 # How to build:
 # mount -o bind /home/zelgadis/projects/morevna/repo_new2/remake /mnt/data/buildroots/pencil-buildroot.i386/mnt/
@@ -12,7 +12,7 @@
 # umount /mnt/data/buildroots/pencil-buildroot.i386/mnt/
 
 export EMAIL='ksee.zelgadis@gmail.com'
-export VERSION='0.4'
+export VERSION='0.5'
 export RELEASE='1'
 export SCRIPTDIR=$(cd `dirname $0`; pwd)
 export SOURCEDIR=`dirname "$SCRIPTDIR"`
@@ -63,6 +63,9 @@ rm -rf \$RPM_BUILD_ROOT
 /usr/share/*
 
 %changelog
+* Wed Jan 02 2013 Konstantin Dmitriev <ksee.zelgadis@gmail.com> - 0.5-1
+- Release version 0.5
+
 * Wed Jan 11 2012 Konstantin Dmitriev <ksee.zelgadis@gmail.com> - 0.4-0.beta
 - Initial release
 
