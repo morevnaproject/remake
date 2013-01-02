@@ -81,7 +81,7 @@ Parallelization options
                 application (job). Use zero to set value equal to 
                 the number of CPUs available.
                 Default value: 0.
-  -l            Specifies  that  no new jobs (commands) should be 
+  -l <load>     Specifies  that  no new jobs (commands) should be 
                 started if there are others jobs running and the 
                 load average is at least load (a floating-point 
                 number). With no argument, removes a previous load
