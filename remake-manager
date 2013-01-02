@@ -81,7 +81,6 @@ bash "$MODULES_PATH/mod_blend" check || ( cd .. ; rm -rf "$1"; exit 1 )
 
 BLENDER_VERSION_FOUND=`blender --version`
 BLENDER_VERSION_FOUND=${BLENDER_VERSION_FOUND:8:4}
-echo "BLENDER_VERSION=${BLENDER_VERSION_FOUND}" >> "$PROJECTROOT/remake.conf"
 if [[ ${BLENDER_VERSION_FOUND:0:3} == '2.4' ]]; then
 	rm project.blend
 	mv project-2.4x.blend project.blend
