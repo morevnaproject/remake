@@ -377,7 +377,7 @@ rules(){
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
 			echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
 		fi
-		echo "	-blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 1 -F $BLENDERFORMAT -t $OPT_THREADS $FROM $TO $RANGE 2>&1 | grep -E '^Saved: '" >> "$MAKEFILE"
+		echo "	blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 1 -F $BLENDERFORMAT -t $OPT_THREADS $FROM $TO $RANGE 2>&1" >> "$MAKEFILE"
 		if [[ $BLENDERFORMAT == 'PNG' ]]; then
 			echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
 			echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
