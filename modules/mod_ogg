@@ -46,7 +46,7 @@ rules(){
 	cat >> "$MAKEFILE" << EOF
 	rm -rf "$RENDERPATH"
 	oggdec "$TARGET" -o "$TEMPFILE"
-	sox "$TEMPFILE" -r $AUDIO_RATE "$RENDERPATH" polyphase
+	sox "$TEMPFILE" "$RENDERPATH" rate -v $AUDIO_RATE
 	rm -rf "$TEMPFILE"
 EOF
 

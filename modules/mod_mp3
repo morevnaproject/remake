@@ -45,7 +45,7 @@ rules(){
 	cat >> "$MAKEFILE" << EOF
 	rm -rf "$RENDERPATH"
 	mpg123 -w "$RENDERPATH.$$" "$TARGET"
-	sox "$TEMPFILE" -r $AUDIO_RATE "$RENDERPATH" polyphase
+	sox "$TEMPFILE" "$RENDERPATH" rate -v $AUDIO_RATE
 	rm -rf "$TEMPFILE"
 EOF
 
