@@ -706,7 +706,7 @@ do
          t)
              OPT_THREADS="$OPTARG"
              if [[ $OPT_THREADS == 0 ]]; then
-                OPT_THREADS=`egrep "siblings"  /proc/cpuinfo | sort -u | cut -d`
+                OPT_THREADS=`egrep "siblings"  /proc/cpuinfo | sort -u | cut -d ' ' -f2`
              fi
              ;;
          w)
