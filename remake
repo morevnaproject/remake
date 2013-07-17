@@ -311,7 +311,7 @@ write_rules(){
 		if [ ! -e "${CHECK_PATH}/mod_$EXT" ]; then
 			echo
 			echo "Checking mod_$EXT dependencies..."
-			bash -e "$MODULES_PATH/mod_$EXT" check
+			bash "$MODULES_PATH/mod_$EXT" check
 			[ -d "${CHECK_PATH}" ] || mkdir "${CHECK_PATH}"
 			touch "${CHECK_PATH}/mod_$EXT"
 			echo "   Successfull."
