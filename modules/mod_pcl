@@ -25,18 +25,6 @@ check(){
 		info_pencil_get
 		exit 1
 	fi
-	
-	# Magic to check if pencil have required patches
-	DISPLAY=cumba:woomba:0.x $PENCILBIN | grep "(Morevna Branch" >/dev/null
-	PENCIL_VERSION=`echo $?`
-	if [[ $PENCIL_VERSION == 1 ]] ; then
-		cat <<EOF
-   FATAL: This version of Pencil doesn't supports commandline options!
-EOF
-		echo
-		info_pencil_get
-		exit 1
-	fi
 }
 
 format(){
@@ -94,7 +82,9 @@ EOF
 }
 
 export PENCILBIN=''
-if ( which pencil > /dev/null 2>&1 ); then
+if ( which pencil2d > /dev/null 2>&1 ); then
+	PENCILBIN='pencil2d'
+elif ( which pencil > /dev/null 2>&1 ); then
 	PENCILBIN='pencil'
 elif ( which Pencil > /dev/null 2>&1 ); then
 	PENCILBIN='Pencil'
