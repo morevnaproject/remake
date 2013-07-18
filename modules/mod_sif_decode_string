@@ -14,4 +14,5 @@ def decode_unicode_references(data):
 
 result=decode_unicode_references(sys.argv[1])
 result=result.replace('%20',' ')
-print result.encode('utf-8')
+#print result.encode('utf-8')
+print result
