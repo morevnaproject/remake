@@ -12,7 +12,7 @@ info_pencil_get()
 	cat << EOF
           Please get modified version of Pencil from any of the 
           following urls:
-            * Source: http://github.com/morevnaproject/pencil
+            * Source: http://github.com/pencil2d/pencil
             * Binaries: http://morevnaproject.org/packages#pencil
 EOF
 }
