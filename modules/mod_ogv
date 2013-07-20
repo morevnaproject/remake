@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# ==== Utility functions ====
+
+escape()
+{
+echo "$1"| sed -e "s/ /\\\\\\ /g"
+}
+
+# ==== Module functions ====
+
+check(){
+	if ! ( which ffmpeg > /dev/null 2>&1 ); then
+		cat <<EOF
+   FATAL: Can't find 'ffmpeg' binary!
+   
+          Please install 'ffmpeg' package using software manager
+          of your linux distributive.
+EOF
+		exit 1
+	fi
+}
+
+format(){
+	echo $FORMAT
+}
+
+deps(){
+	echo
+}
+
+rules(){
+	if [[ $FORMAT == 'avi' ]]; then
+		OUTPUT="$RENDERPATH"
+		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+		#TODO: FPS detection?
+		echo "	ffmpeg -i \"$TARGET\" -qscale 3 -acodec libmp3lame -aq 4 \"$OUTPUT\"" >> "$MAKEFILE"
+	else
+		OUTPUT="$RENDERPATH/file.%06d.$FORMAT"
+		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
+		echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "`escape "$RENDERPATH"`/file.lst: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "	ffmpeg -i \"$TARGET\" -an -f image2 \"$OUTPUT\"" >> "$MAKEFILE"
+		#TODO: FPS detection?
+		echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
+		echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
+	fi
+	
+	echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
+	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+}
+
+$1 "$2"
