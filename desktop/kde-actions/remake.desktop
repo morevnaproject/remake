@@ -1,0 +1,33 @@
+[Desktop Entry]
+Type=Service
+Actions=Render;Dependencies;Snapshot;Pack;Clean;
+# all files inherit from application/octet-stream
+MimeType=application/octet-stream;
+X-KDE-ServiceTypes=KonqPopupMenu/Plugin
+Icon=image-x-applix-graphics
+
+
+[Desktop Action Render]
+Name=Remake Render
+Exec=remake-gui %f
+Icon=image-x-applix-graphics
+
+[Desktop Action Dependencies]
+Name=Remake Render Dependencies
+Exec=remake-gui %f deps
+Icon=image-x-applix-graphics
+
+[Desktop Action Snapshot]
+Name=Remake Render Snapshot
+Exec=remake-gui %f snapshot
+Icon=image-x-applix-graphics
+
+[Desktop Action Pack]
+Name=Remake Pack
+Exec=remake-gui %f pack
+Icon=image-x-applix-graphics
+
+[Desktop Action Clean]
+Name=Remake Clean
+Exec=remake-gui %f clean
+Icon=image-x-applix-graphics

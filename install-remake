@@ -4,6 +4,8 @@ set -e
 
 SCRIPT_PATH=$(cd `dirname $0`; pwd)
 
+cd $SCRIPT_PATH
+
 BINARY_FILES="remake remake-gui remake-manager"
 LIB_FILES=`find modules`
 DATA_FILES=`find project tests -path 'project/render*' -prune -o -path 'project/packs*' -prune -o -print`
@@ -24,8 +26,6 @@ fi
 
 echo
 echo "Installing Remake to $PREFIX ..."
-
-cd $SCRIPT_PATH
 
 OLD_IFS=$IFS      # save the field separator    
 IFS=$' \n'     # new field separator, the end of line    
@@ -64,6 +64,13 @@ do
 	COMMAND="install -D -m 644 desktop/nautilus-actions-3/$FILE ${PREFIX}/share/file-manager/actions/$FILE"
 	[ -d $FILE ] || ( echo $COMMAND && $COMMAND )
 done
+# KDE Dolphin/Konqueror actions
+if [ -z "$KDE_SERVICES_PREFIX" ]; then
+	export KDE_SERVICES_PREFIX="/usr/share/kde4/services/ServiceMenus"
+fi
+COMMAND="install -D -m 644 desktop/kde-actions/remake.desktop ${KDE_SERVICES_PREFIX}/remake.desktop"
+echo $COMMAND && $COMMAND
+
 
 IFS=$OLD_IFS     # restore default field separator
 

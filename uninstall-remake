@@ -91,7 +91,13 @@ echo $COMMAND && $COMMAND
 for FILE in `ls -1 desktop/nautilus-actions-3/`
 do
 	COMMAND="rm -f ${PREFIX}/share/file-manager/actions/$FILE"
-	[ -e ${PREFIX}/share/file-manager/actions/$FILE ] || ( echo $COMMAND && $COMMAND )
+	[ ! -e ${PREFIX}/share/file-manager/actions/$FILE ] || ( echo $COMMAND && $COMMAND )
 done
+# KDE Dolphin/Konqueror actions
+if [ -z "$KDE_SERVICES_PREFIX" ]; then
+	export KDE_SERVICES_PREFIX="/usr/share/kde4/services/ServiceMenus"
+fi
+COMMAND="rm -f ${KDE_SERVICES_PREFIX}/remake.desktop"
+[ ! -e ${PREFIX}/share/file-manager/actions/$FILE ] || ( echo $COMMAND && $COMMAND )
 
 IFS=$OLD_IFS     # restore default field separator
