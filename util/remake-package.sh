@@ -5,17 +5,18 @@
 # How to build:
 # mount -o bind /home/zelgadis/projects/morevna/repo_new2/remake /mnt/data/buildroots/pencil-buildroot.i386/mnt/
 # linux32 chroot /mnt/data/buildroots/pencil-buildroot.i386/
-# apt-get install --force-yes -y rpm alien
-# cd /mnt
-# bash util/remake-package.sh
+# apt-get install --force-yes -y rpm alien 
+# bash /mnt/util/remake-package.sh
 # exit
 # umount /mnt/data/buildroots/pencil-buildroot.i386/mnt/
 
 export EMAIL='ksee.zelgadis@gmail.com'
-export VERSION='0.5'
+export VERSION='0.6'
 export RELEASE='1'
 export SCRIPTDIR=$(cd `dirname $0`; pwd)
 export SOURCEDIR=`dirname "$SCRIPTDIR"`
+
+cd $SOURCEDIR
 
 cat > /tmp/remake.spec << EOF
 %define _unpackaged_files_terminate_build 0
@@ -63,6 +64,9 @@ rm -rf \$RPM_BUILD_ROOT
 /usr/share/*
 
 %changelog
+* Sat Jul 20 2013 Konstantin Dmitriev <ksee.zelgadis@gmail.com> - 0.6-1
+- Release version 0.6
+
 * Wed Jan 02 2013 Konstantin Dmitriev <ksee.zelgadis@gmail.com> - 0.5-1
 - Release version 0.5
 
