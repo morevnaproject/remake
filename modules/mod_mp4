@@ -36,7 +36,7 @@ rules(){
 	echo "`escape "$RENDERPATH"`/file.lst: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 	echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
 	echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
-	echo "	ffmpeg -i \"$TARGET\" -an -f image2 \"$OUTPUT\"" >> "$MAKEFILE"
+	echo "	ffmpeg -i \"$TARGET\" -vf scale=$WIDTH:$HEIGHT -an -f image2 \"$OUTPUT\"" >> "$MAKEFILE"
 	#TODO: FPS detection?
 	echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
 	echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
