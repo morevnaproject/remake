@@ -34,8 +34,9 @@ rules(){
 		OUTPUT="$RENDERPATH"
 		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
-		#TODO: FPS detection?
-		echo "	ffmpeg -i \"$TARGET\" -qscale 3 -acodec libmp3lame -aq 4 \"$OUTPUT\"" >> "$MAKEFILE"
+		#echo "	ffmpeg -i \"$TARGET\" -c:v libx264 -preset veryslow -qp 0 \"$OUTPUT\"" >> "$MAKEFILE"
+		echo "	ffmpeg -i \"$TARGET\" -r $FPS -c:v libx264 -preset ultrafast -qp 0 -acodec libmp3lame -aq 4 \"$OUTPUT\"" >> "$MAKEFILE"
+		#echo "	ffmpeg -i \"$TARGET\" -qscale 3 -acodec libmp3lame -aq 4 \"$OUTPUT\"" >> "$MAKEFILE"
 	else
 		OUTPUT="$RENDERPATH/file.%06d.$FORMAT"
 		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
