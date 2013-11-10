@@ -344,6 +344,9 @@ rules(){
 	if [[ $BLENDERFORMAT == 'MPG' ]]; then
 		BLENDERFORMAT="MPEG"
 	fi
+	if [[ $BLENDERFORMAT == 'AVI' ]]; then
+		BLENDERFORMAT="MOVIE"
+	fi
 	
 	RENDERSCRIPT="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.py|"`"
 	renderscript
@@ -369,7 +372,7 @@ rules(){
 			echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
 			echo "`escape "$RENDERPATH/file.lst"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		fi
-		if [[ $BLENDERFORMAT == 'MPEG' ]]; then
+		if [[ $BLENDERFORMAT == 'MPEG' ]] || [[ $BLENDERFORMAT == 'MOVIE' ]]; then
 			OUTPUT="\`pwd\`/$RENDERPATH"
 			echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		fi
