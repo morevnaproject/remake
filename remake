@@ -44,6 +44,11 @@ if [ ! -d "$TESTDATA_PATH" ]; then
 fi
 export TESTDATA_PATH
 
+if [ `uname -o` = "Cygwin" ]; then
+export PATH="$SCRIPT_PATH/cygwin:/cygdrive/c/cygwin/bin:$PATH"
+chmod +x $SCRIPT_PATH/cygwin/*
+fi
+
 #Init traps
 trap do_cleanup INT
 
@@ -433,12 +438,16 @@ write_rules(){
 		echo "            Skipping."
 	else
 		#bash -x "$MODULES_PATH/mod_$EXT" deps
-		RAWDEPS=`bash -e "$MODULES_PATH/mod_$EXT" deps`
+		RAWDEPS=`bash -e "$MODULES_PATH/mod_$EXT" deps | sed -e 's|\\\\|\\\\\\\\|g'`
 		# Removing duplicates
 		RAWDEPS=`echo "$RAWDEPS" | sort -u`
 		# Check for new render targets
 		if [ ! -z "$RAWDEPS" ];then
 		while read LINE; do
+			if [ `uname -o` = "Cygwin" ]; then
+				LINE=`cygpath -u "$LINE"`
+			fi
+			echo $LINE
 			DIR=`dirname "$LINE"`
 			if [ ! -e "$DIR" ]; then
 				# go one level down, because render result could be a 
@@ -562,7 +571,7 @@ write_rules(){
 					fi
 				fi
 			fi
-		done < <( echo "$RAWDEPS" )
+		done  < <( echo -E "$RAWDEPS" )
 		# Write cache
 		echo $CACHE_VERSION > "$CACHEFILE"
 		echo $TARGETDATE >> "$CACHEFILE"
@@ -705,8 +714,12 @@ do
              ;;
          t)
              OPT_THREADS="$OPTARG"
-             if [[ $OPT_THREADS == 0 ]]; then
-                OPT_THREADS=`egrep "siblings"  /proc/cpuinfo | sort -u | cut -d ' ' -f2`
+             if [ `uname -o` = "Cygwin" ]; then
+				echo "Skipping automatic processor detection..."
+             else
+				 if [[ $OPT_THREADS == 0 ]]; then
+					OPT_THREADS=`egrep "siblings"  /proc/cpuinfo | sort -u | cut -d ' ' -f2`
+				 fi
              fi
              ;;
          w)
@@ -790,7 +803,13 @@ echo "       First stage: Analyzing files"
 echo "==============================================="
 echo
 
-write_rules "$1" 1 "$2" "$OPT_FORMAT"
+if [ `uname -o` = "Cygwin" ]; then
+	FILENAME=`cygpath -u "$1"`
+else
+	FILENAME="$1"
+fi
+
+write_rules "$FILENAME" 1 "$2" "$OPT_FORMAT"
 echo ".PHONY: clean" >> "$MAKEFILE"
 echo ".PHONY: pack" >> "$MAKEFILE"
 
