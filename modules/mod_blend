@@ -136,8 +136,8 @@ EOF
 
 	cat >> "$RENDERSCRIPT" << EOF
 
-		rend.parts_x = 4
-		rend.parts_y = 4
+		#rend.parts_x = 4
+		#rend.parts_y = 4
 
 		rend.fps = $FPS
 
@@ -345,7 +345,7 @@ rules(){
 		BLENDERFORMAT="MPEG"
 	fi
 	if [[ $BLENDERFORMAT == 'AVI' ]]; then
-		BLENDERFORMAT="MOVIE"
+		BLENDERFORMAT="MPEG"
 	fi
 	
 	RENDERSCRIPT="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.py|"`"
@@ -366,7 +366,7 @@ rules(){
 			TO=" -e $TO "
 		fi
 		RANGE="-a"
-		if [[ $BLENDERFORMAT == 'PNG' ]]; then
+		if [[ $BLENDERFORMAT == 'PNG' ]] || [[ $BLENDERFORMAT == 'TGA' ]]; then
 			OUTPUT="\`pwd\`/$RENDERPATH/file.####"
 			echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH/file.lst"`" >> "$MAKEFILE"
 			echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
@@ -377,11 +377,11 @@ rules(){
 			echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 		fi
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
-		if [[ $BLENDERFORMAT == 'PNG' ]]; then
+		if [[ $BLENDERFORMAT == 'PNG' ]] || [[ $BLENDERFORMAT == 'TGA' ]]; then
 			echo "	mkdir -p \"$RENDERPATH\"" >> "$MAKEFILE"
 		fi
 		echo "	blender -b \"\`pwd\`/$TARGET\" -S Scene -P \"\`pwd\`/$RENDERSCRIPT\" -o \"$OUTPUT\" -x 1 -F $BLENDERFORMAT -t $OPT_THREADS $FROM $TO $RANGE 2>&1" >> "$MAKEFILE"
-		if [[ $BLENDERFORMAT == 'PNG' ]]; then
+		if [[ $BLENDERFORMAT == 'PNG' ]] || [[ $BLENDERFORMAT == 'TGA' ]]; then
 			echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
 			echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
 		fi
