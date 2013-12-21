@@ -620,26 +620,46 @@ write_rules(){
 		
 		echo "stereo: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
 		echo ".PHONY: stereo" >> "$MAKEFILE"
-		echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+		echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		#if false && ( [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]] ); then
+		#echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
+		#else
+		#echo "`escape "$RENDERPATH_STEREO.mpg"`: " >> "$MAKEFILE"
+		#fi
 		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/left\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/left\"" >> "$MAKEFILE"
 		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
 		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
 		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
 		
-		[ ! -z $OPT_JOBS ] || OPT_JOBS=0
+		[ ! -z $OPT_THREADS ] || OPT_THREADS=0
+		[ ! -z $OPT_LOAD_LIMIT ] || OPT_LOAD_LIMIT=100
 		
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Left -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f png -c Right -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-		echo "	[ -d \"${RENDERPATH_STEREO}.png\" ] && rm -rf \"${RENDERPATH_STEREO}.png\" || true" >> "$MAKEFILE"
-		echo "	mkdir \"${RENDERPATH_STEREO}.png\"" >> "$MAKEFILE"
-		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\"; ls *.png\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.png/\$\$file\" +append \"${RENDERPATH_STEREO}.png/\$\$file\"; done" >> "$MAKEFILE"
-		echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.png/file.lst\" \"${RENDERPATH_STEREO}.png/\"" >> "$MAKEFILE"
+		if [[ $FORMAT == 'png' ]] || [[ $FORMAT == 'tga' ]]; then
+			export STEREO_FORMAT=$FORMAT
+		else
+			export STEREO_FORMAT=png
+		fi
+		
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT -c Left -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT -c Right -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		echo "	[ -d \"${RENDERPATH_STEREO}.$STEREO_FORMAT\" ] && rm -rf \"${RENDERPATH_STEREO}.$STEREO_FORMAT\" || true" >> "$MAKEFILE"
+		echo "	mkdir \"${RENDERPATH_STEREO}.$STEREO_FORMAT\"" >> "$MAKEFILE"
+		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\"; ls *.$STEREO_FORMAT\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" +append \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\$\$file\"; done" >> "$MAKEFILE"
+		echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/file.lst\" \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\"" >> "$MAKEFILE"
+		if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]]; then
 		echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
-		echo "	if [[ \`stat -c%s \"$RENDERPATH_AUDIO\"\` == 0 ]];then \\" >> "$MAKEFILE"
-		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"; \\" >> "$MAKEFILE"
+		echo "	if [ ! -e \"$RENDERPATH_AUDIO\" ] || [[ \`stat -c%s \"$RENDERPATH_AUDIO\"\` == 0 ]];then \\" >> "$MAKEFILE"
+		if [[ $FORMAT == 'mpg' ]]; then
+			FFMPEG_PARAMS="-qscale 0"
+		fi
+		if [[ $FORMAT == 'avi' ]]; then
+			FFMPEG_PARAMS="-c:v libx264 -preset ultrafast -qp 0"
+		fi
+		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
 		echo "	else \\" >> "$MAKEFILE"
-		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.png/file.%04d.png\" -i \"$RENDERPATH_AUDIO\" -acodec copy -sameq -r $FPS \"${RENDERPATH_STEREO}.mpg\"; \\" >> "$MAKEFILE"
+		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" -i \"$RENDERPATH_AUDIO\" -acodec copy $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
 		echo "	fi" >> "$MAKEFILE"
+		fi
 	fi
 	# "Snapshot" rule
 	if [[ "$3" == 'snapshot' ]]; then
@@ -659,7 +679,7 @@ write_rules(){
 		if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]]; then
 			echo "	cp -f \"${RENDERPATH}\" \"${SNAPSHOTPATH}.$FORMAT\"" >> "$MAKEFILE"
 		else
-			echo "	ffmpeg -y -i \"${RENDERPATH}/file.%04d.png\" -sameq -r $FPS \"${SNAPSHOTPATH}.avi\"" >> "$MAKEFILE"
+			echo "	ffmpeg -y -i \"${RENDERPATH}/file.%04d.png\" -qscale 0 -r $FPS \"${SNAPSHOTPATH}.avi\"" >> "$MAKEFILE"
 		fi
 		echo ".PHONY: snapshot" >> "$MAKEFILE"
 	fi
