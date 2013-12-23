@@ -1,0 +1,16 @@
+#!/bin/bash
+
+COMMAND="`dirname $0`/../../python/python.exe"
+
+for ARG in "$@";do
+	if [[ ${ARG:0:1} != "-" ]]; then
+		ARG2=`cygpath -w "$ARG"`
+		COMMAND="$COMMAND $ARG2"
+	else
+		COMMAND="$COMMAND $ARG"
+	fi
+done
+
+$COMMAND
+
+#echo "Started command was: $COMMAND"
