@@ -65,7 +65,7 @@ def main():
 		# Suff for updating file
 		size_x = rend.sizeX
 		size_y = rend.sizeY
-		fps = rend.fps
+		#fps = rend.fps
 EOF
 	# Get image dimensions from file if it's unspecified
 
@@ -78,7 +78,7 @@ EOF
 		rend.xParts = 4
 		rend.yParts = 4
 
-		rend.fps = $FPS
+		#rend.fps = $FPS
 
 		# OPENEXR stuff
 		#rend.zbuf = False
@@ -126,7 +126,7 @@ EOF
 		# Suff for updating file
 		size_x = rend.resolution_x
 		size_y = rend.resolution_y
-		fps = rend.fps
+		#fps = rend.fps
 EOF
 	# Get image dimensions from file if it's unspecified
 
@@ -139,7 +139,7 @@ EOF
 		#rend.parts_x = 4
 		#rend.parts_y = 4
 
-		rend.fps = $FPS
+		#rend.fps = $FPS
 
 		# OPENEXR stuff
 		#rend.exr_zbuf = False
