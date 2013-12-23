@@ -628,8 +628,8 @@ write_rules(){
 		#fi
 		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/left\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/left\"" >> "$MAKEFILE"
 		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
-		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
-		echo "	rsync -av --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
+		echo "	rsync -rv --no-p --no-g --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
+		echo "	rsync -rv --no-p --no-g --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
 		
 		[ ! -z $OPT_THREADS ] || OPT_THREADS=0
 		[ ! -z $OPT_LOAD_LIMIT ] || OPT_LOAD_LIMIT=100
@@ -644,7 +644,7 @@ write_rules(){
 		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT -c Right -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		echo "	[ -d \"${RENDERPATH_STEREO}.$STEREO_FORMAT\" ] && rm -rf \"${RENDERPATH_STEREO}.$STEREO_FORMAT\" || true" >> "$MAKEFILE"
 		echo "	mkdir \"${RENDERPATH_STEREO}.$STEREO_FORMAT\"" >> "$MAKEFILE"
-		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\"; ls *.$STEREO_FORMAT\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" +append \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\$\$file\"; done" >> "$MAKEFILE"
+		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\"; ls *.$STEREO_FORMAT\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" -append \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\$\$file\"; done" >> "$MAKEFILE"
 		echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/file.lst\" \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\"" >> "$MAKEFILE"
 		if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]]; then
 		echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
