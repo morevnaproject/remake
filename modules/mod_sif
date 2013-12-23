@@ -135,6 +135,12 @@ rules(){
 		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
 		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE $OPTWIDTH $OPTHEIGHT $OPT_THREADS \"$TARGET\"" >> "$MAKEFILE"
 	else
+		if [[ $FORMAT == 'gif' ]]; then
+		OUTPUT="$RENDERPATH"
+		echo "`escape "$RENDERPATH"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
+		echo "	rm -rf \"$RENDERPATH\"" >> "$MAKEFILE"
+		echo "	synfig -t magick++ -o \"$OUTPUT\" $RANGE $OPTWIDTH $OPTHEIGHT $OPT_THREADS \"$TARGET\"" >> "$MAKEFILE"
+		else
 		OUTPUT="$RENDERPATH/file.$FORMAT"
 		echo "`escape "$RENDERPATH"`: `escape "$RENDERPATH"`/file.lst" >> "$MAKEFILE"
 		echo "	touch \"$RENDERPATH\"" >> "$MAKEFILE"
@@ -144,6 +150,7 @@ rules(){
 		echo "	synfig -t $FORMAT -o \"$OUTPUT\" $RANGE $OPTWIDTH $OPTHEIGHT $OPT_THREADS \"$TARGET\"" >> "$MAKEFILE"
 		echo "	echo \"FPS $FPS\" > \"$RENDERPATH/file.lst\"" >> "$MAKEFILE"
 		echo "	( cd \"$RENDERPATH\"; ls -1 *.$FORMAT >> file.lst )" >> "$MAKEFILE"
+		fi
 	fi
 
 	echo "`escape "$RENDERPATH"`-clean:" >> "$MAKEFILE"
