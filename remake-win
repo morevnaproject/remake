@@ -1,0 +1,12 @@
+#!/bin/bash
+
+
+SCRIPT_PATH=`/bin/dirname "${BASH_SOURCE[0]}"`;
+
+export PATH="/usr/local/bin:/usr/bin:/bin:$SCRIPT_PATH:$SCRIPT_PATH/../blender:SCRIPT_PATH/../synfig/bin:$PATH"
+
+#pushd `dirname "${SCRIPT_PATH}"` > /dev/null
+#SCRIPT_PATH=`pwd`;
+#popd  > /dev/null
+
+remake "$@"
