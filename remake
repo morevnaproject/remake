@@ -615,8 +615,16 @@ write_rules(){
 	# Stereo rendering
 	if [[ "$3" == 'stereo' ]]; then
 		
+		if [[ $FORMAT == 'png' ]] || [[ $FORMAT == 'tga' ]]; then
+			export STEREO_FORMAT=$FORMAT
+		else
+			export STEREO_FORMAT=png
+		fi
+		
 		RENDERPATH_STEREO=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`-stereo
 		RENDERPATH_AUDIO="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.mp2|"`"
+		RENDERPATH_LEFT_SEQUENCE="${PROJECTROOT}/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT"
+		RENDERPATH_RIGHT_SEQUENCE="${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT"
 		
 		echo ".PHONY: stereo" >> "$MAKEFILE"
 		echo "stereo: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
@@ -626,15 +634,32 @@ write_rules(){
 		#echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
 		#else
 		echo ".PHONY: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
-		echo "`escape "$RENDERPATH_STEREO.mpg"`: " >> "$MAKEFILE"
+		echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "${RENDERPATH_LEFT_SEQUENCE}/file.lst"` `escape "${RENDERPATH_RIGHT_SEQUENCE}/file.lst"`" >> "$MAKEFILE"
 		#fi
-		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/left\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/left\"" >> "$MAKEFILE"
-		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
-		echo "	rsync -av --no-p --no-g --delete --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
-		echo "	rsync -av --no-p --no-g --delete --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
 		
-		[ ! -z $OPT_THREADS ] || OPT_THREADS=0
-		[ ! -z $OPT_LOAD_LIMIT ] || OPT_LOAD_LIMIT=100
+		if [ ! -z $OPT_THREADS ]; then
+			ARG_THREADS="-t $OPT_THREADS"
+		fi
+		if [ ! -z $OPT_LOAD_LIMIT ]; then
+			ARG_LOAD_LIMIT="-l $OPT_LOAD_LIMIT"
+		fi
+		if [ ! -z $OPT_JOBS ]; then
+			ARG_JOBS_LEFT="`expr $OPT_JOBS \/ 2`"
+			ARG_JOBS_RIGHT="`expr $OPT_JOBS  - $ARG_JOBS_LEFT`"
+			if [[ $ARG_JOBS_LEFT == 0 ]]; then
+				ARG_JOBS_LEFT=1
+			fi
+			if [[ $ARG_JOBS_RIGHT == 0 ]]; then
+				ARG_JOBS_RIGHT=1
+			fi
+			if [ ! -z $ARG_JOBS_LEFT ] && [ ! -z $ARG_JOBS_RIGHT ]; then
+				ARG_JOBS_LEFT="-j $ARG_JOBS_LEFT"
+				ARG_JOBS_RIGHT="-j $ARG_JOBS_RIGHT"
+			else
+				ARG_JOBS_LEFT=""
+				ARG_JOBS_RIGHT=""
+			fi
+		fi
 		if [ ! -z $OPT_HEIGHT ]; then
 			ARG_HEIGHT="-h $OPT_HEIGHT"
 		fi
@@ -642,14 +667,6 @@ write_rules(){
 			ARG_WIDTH="-w $OPT_WIDTH"
 		fi
 		
-		if [[ $FORMAT == 'png' ]] || [[ $FORMAT == 'tga' ]]; then
-			export STEREO_FORMAT=$FORMAT
-		else
-			export STEREO_FORMAT=png
-		fi
-		
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT $ARG_HEIGHT $ARG_WIDTH -c Left -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
-		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT $ARG_HEIGHT $ARG_WIDTH -c Right -j $OPT_JOBS -l "$OPT_LOAD_LIMIT" $OPT_IGNORE_ERRORS -t "$OPT_THREADS" \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		echo "	[ -d \"${RENDERPATH_STEREO}.$STEREO_FORMAT\" ] && rm -rf \"${RENDERPATH_STEREO}.$STEREO_FORMAT\" || true" >> "$MAKEFILE"
 		echo "	mkdir \"${RENDERPATH_STEREO}.$STEREO_FORMAT\"" >> "$MAKEFILE"
 		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\"; ls *.$STEREO_FORMAT\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" -append \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\$\$file\"; done" >> "$MAKEFILE"
@@ -668,6 +685,19 @@ write_rules(){
 		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" -i \"$RENDERPATH_AUDIO\" -acodec copy $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
 		echo "	fi" >> "$MAKEFILE"
 		fi
+		
+		echo ".PHONY: `escape "${RENDERPATH_LEFT_SEQUENCE}/file.lst"`" >> "$MAKEFILE"
+		echo "`escape "${RENDERPATH_LEFT_SEQUENCE}/file.lst"`: " >> "$MAKEFILE"
+		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/left\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/left\"" >> "$MAKEFILE"
+		echo "	rsync -av --no-p --no-g --delete --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT $ARG_HEIGHT $ARG_WIDTH -c Left $ARG_JOBS_LEFT $ARG_LOAD_LIMIT $OPT_IGNORE_ERRORS $ARG_THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		
+		echo ".PHONY: `escape "${RENDERPATH_RIGHT_SEQUENCE}/file.lst"`" >> "$MAKEFILE"
+		echo "`escape "${RENDERPATH_RIGHT_SEQUENCE}/file.lst"`: " >> "$MAKEFILE"
+		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
+		echo "	rsync -av --no-p --no-g --delete --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
+		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT $ARG_HEIGHT $ARG_WIDTH -c Right $ARG_JOBS_RIGHT $ARG_LOAD_LIMIT $OPT_IGNORE_ERRORS $ARG_THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
+		
 	fi
 	# "Snapshot" rule
 	if [[ "$3" == 'snapshot' ]]; then
