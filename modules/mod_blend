@@ -16,6 +16,15 @@ renderscript(){
 	if [ -z $UPDATE ]; then
 		UPDATE=0
 	fi
+	
+	if [ `uname -o` = "Cygwin" ]; then
+		AUDIO_FILENAME=`cygpath -w "$RENDERPATH"`
+		AUDIO_FILENAME=`echo $AUDIO_FILENAME | sed -e 's|\\\\|/|g'`
+		AUDIO_FILENAME=`echo $AUDIO_FILENAME | sed -e 's|/|\\\\\\\\|g'`
+	else
+		AUDIO_FILENAME="$RENDERPATH"
+	fi
+	
 	cat > "$RENDERSCRIPT" << EOF
 import sys
 
@@ -154,8 +163,19 @@ EOF
 		# Update .blend file if we have width or height changed
 		if update != 0 and ( size_x != rend.resolution_x or size_y != rend.resolution_y or fps != rend.fps ):
 			bpy.ops.wm.save_mainfile("EXEC_DEFAULT",filepath="`pwd`/$TARGET")
-
-
+		
+		# Dump audio track if any
+		audio_found=False
+		for path in bpy.utils.blend_paths(0):
+			if path.endswith(".wav"):
+				audio_found=True
+				break
+		
+		if audio_found:
+			import os
+			audio_filename = os.path.splitext("$AUDIO_FILENAME")[0]
+			audio_filename += ".wav"
+			bpy.ops.sound.mixdown(filepath=audio_filename, check_existing=False, container="WAV")
 	
 if __name__ == '__main__':
 	main()
