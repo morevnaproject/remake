@@ -622,7 +622,8 @@ write_rules(){
 		fi
 		
 		RENDERPATH_STEREO=$(relpath "`pwd -P`" "$PROJECTROOT/render${RENDERPREFIX}")/`basename "$TARGET"`-stereo
-		RENDERPATH_AUDIO="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.mp2|"`"
+		#RENDERPATH_AUDIO="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.mp2|"`"
+		RENDERPATH_AUDIO="${PROJECTROOT}/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.wav"
 		RENDERPATH_LEFT_SEQUENCE="${PROJECTROOT}/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT"
 		RENDERPATH_RIGHT_SEQUENCE="${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT"
 		
@@ -672,7 +673,7 @@ write_rules(){
 		echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\"; ls *.$STEREO_FORMAT\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" -append \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\$\$file\"; done" >> "$MAKEFILE"
 		echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/file.lst\" \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\"" >> "$MAKEFILE"
 		if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]]; then
-		echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
+		#echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
 		echo "	if [ ! -e \"$RENDERPATH_AUDIO\" ] || [[ \`stat -c%s \"$RENDERPATH_AUDIO\"\` == 0 ]];then \\" >> "$MAKEFILE"
 		if [[ $FORMAT == 'mpg' ]]; then
 			FFMPEG_PARAMS="-qscale 0"
@@ -682,7 +683,7 @@ write_rules(){
 		fi
 		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
 		echo "	else \\" >> "$MAKEFILE"
-		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" -i \"$RENDERPATH_AUDIO\" -acodec copy $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
+		echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" -i \"$RENDERPATH_AUDIO\"  -acodec libmp3lame -ab 256 $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
 		echo "	fi" >> "$MAKEFILE"
 		fi
 		
