@@ -168,15 +168,12 @@ EOF
 		audio_found=False
 		for path in bpy.utils.blend_paths(0):
 			if path.endswith(".wav"):
-				audio_found=True
+				import os
+				audio_filename = os.path.splitext("$AUDIO_FILENAME")[0]
+				audio_filename += ".wav"
+				bpy.ops.sound.mixdown(filepath=audio_filename, check_existing=False, container="WAV")
 				break
 		
-		if audio_found:
-			import os
-			audio_filename = os.path.splitext("$AUDIO_FILENAME")[0]
-			audio_filename += ".wav"
-			bpy.ops.sound.mixdown(filepath=audio_filename, check_existing=False, container="WAV")
-	
 if __name__ == '__main__':
 	main()
 EOF
