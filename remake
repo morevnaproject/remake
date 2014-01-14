@@ -645,7 +645,7 @@ write_rules(){
 			ARG_LOAD_LIMIT="-l $OPT_LOAD_LIMIT"
 		fi
 		if [ ! -z $OPT_JOBS ]; then
-			ARG_JOBS_LEFT="`expr $OPT_JOBS \/ 2`"
+			ARG_JOBS_LEFT="`expr $OPT_JOBS \/ 2 || true`"
 			ARG_JOBS_RIGHT="`expr $OPT_JOBS  - $ARG_JOBS_LEFT`"
 			if [[ $ARG_JOBS_LEFT == 0 ]]; then
 				ARG_JOBS_LEFT=1
