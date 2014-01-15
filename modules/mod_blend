@@ -22,7 +22,7 @@ renderscript(){
 		AUDIO_FILENAME=`echo $AUDIO_FILENAME | sed -e 's|\\\\|/|g'`
 		AUDIO_FILENAME=`echo $AUDIO_FILENAME | sed -e 's|/|\\\\\\\\|g'`
 	else
-		AUDIO_FILENAME="$RENDERPATH"
+		AUDIO_FILENAME="`pwd`/$RENDERPATH"
 	fi
 	
 	cat > "$RENDERSCRIPT" << EOF
@@ -165,7 +165,6 @@ EOF
 			bpy.ops.wm.save_mainfile("EXEC_DEFAULT",filepath="`pwd`/$TARGET")
 		
 		# Dump audio track if any
-		audio_found=False
 		for path in bpy.utils.blend_paths(0):
 			if path.endswith(".wav"):
 				import os
