@@ -690,13 +690,13 @@ write_rules(){
 		echo ".PHONY: `escape "${RENDERPATH_LEFT_SEQUENCE}/file.lst"`" >> "$MAKEFILE"
 		echo "`escape "${RENDERPATH_LEFT_SEQUENCE}/file.lst"`: " >> "$MAKEFILE"
 		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/left\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/left\"" >> "$MAKEFILE"
-		echo "	rsync -av --no-p --no-g --delete --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
+		echo "	rsync -av --no-p --no-g --delete --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
 		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT $ARG_HEIGHT $ARG_WIDTH -c Left $ARG_JOBS_LEFT $ARG_LOAD_LIMIT $OPT_IGNORE_ERRORS $ARG_THREADS \"$PROJECTROOT/render/stereo_cache/left/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		
 		echo ".PHONY: `escape "${RENDERPATH_RIGHT_SEQUENCE}/file.lst"`" >> "$MAKEFILE"
 		echo "`escape "${RENDERPATH_RIGHT_SEQUENCE}/file.lst"`: " >> "$MAKEFILE"
 		echo "	[ -d \"${PROJECTROOT}/render/stereo_cache/right\" ] || mkdir -p \"${PROJECTROOT}/render/stereo_cache/right\"" >> "$MAKEFILE"
-		echo "	rsync -av --no-p --no-g --delete --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/left/\"" >> "$MAKEFILE"
+		echo "	rsync -av --no-p --no-g --delete --chmod=ugo=rwX --exclude render/ \"$PROJECTROOT/\" \"${PROJECTROOT}/render/stereo_cache/right/\"" >> "$MAKEFILE"
 		echo "	bash \"$SCRIPT_PATH/`basename $0`\" -f $STEREO_FORMAT $ARG_HEIGHT $ARG_WIDTH -c Right $ARG_JOBS_RIGHT $ARG_LOAD_LIMIT $OPT_IGNORE_ERRORS $ARG_THREADS \"$PROJECTROOT/render/stereo_cache/right/$TARGETDIR/`basename "$1"`\"" >> "$MAKEFILE"
 		
 	fi
