@@ -24,6 +24,9 @@ renderscript(){
 	else
 		AUDIO_FILENAME="`pwd`/$RENDERPATH"
 	fi
+	if [[ $1 == 0 ]]; then
+		AUDIO_FILENAME="${PROJECTROOT}/render/tmp/mod_blend_check.wav"
+	fi
 	
 	cat > "$RENDERSCRIPT" << EOF
 import sys
@@ -301,7 +304,7 @@ EOF
 	UPDATE=0 # This is critical!
 	RENDERSCRIPT="${PROJECTROOT}/render/tmp/mod_blend_check.py"
 	OUTPUT="${PROJECTROOT}/render/tmp/mod_blend_check.mpg"
-	renderscript
+	renderscript 0
 	RANGE="-a"
 	( blender -b "$TESTDATA_PATH/blender-ffmpeg-and-audio-hd.blend" -S Scene -P "$RENDERSCRIPT" -o "$OUTPUT" -x 1 -F $BLENDERFORMAT -t 0 $RANGE 2>&1 | grep -E '^Saved: ' ) || true
 	if [ ! -f "$OUTPUT" ]; then
@@ -365,7 +368,7 @@ rules(){
 	fi
 	
 	RENDERSCRIPT="`echo "$RENDERPATH" | sed -e "s|\.$FORMAT$|.py|"`"
-	renderscript
+	renderscript 1
 
 	if [ ! -z $SINGLE ]; then
 		RANGE="-f $SINGLE"
