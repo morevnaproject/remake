@@ -830,14 +830,14 @@ if [ ! -f "$1" ]; then
 	exit 1
 fi
 
-if [[ "$3" == 'snapshot' ]]; then
+if [[ "$2" == 'snapshot' ]]; then
 	if ! ( which ffmpeg > /dev/null 2>&1 ); then
 		echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
 		exit 1
 	fi
 fi
 
-if [[ "$3" == 'stereo' ]]; then
+if [[ "$2" == 'stereo' ]]; then
 	# Check requirements
 	if ! ( which ffmpeg > /dev/null 2>&1 ); then
 		echo "   FATAL: Can't find 'ffmpeg' binary!" >&2
