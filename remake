@@ -681,15 +681,22 @@ write_rules(){
 			#echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
 			echo "	if [ ! -e \"$RENDERPATH_AUDIO\" ] || [[ \`stat -c%s \"$RENDERPATH_AUDIO\"\` == 0 ]];then \\" >> "$MAKEFILE"
 			if [[ $FORMAT == 'mpg' ]]; then
-				FFMPEG_PARAMS="-qscale 1 -qmin 1 -vb 8000"
-				#FFMPEG_PARAMS="-pix_fmt yuv422p -qscale 1 -qmin 1 -intra"
+				FFMPEG_PARAMS="-vcodec mpeg2video -qscale 1 -qmin 1 -vb 8000  -acodec mp2 -ab 256000 -ar 48000"
+				#FFMPEG_PARAMS="-vcodec mpeg2video -pix_fmt yuv422p -qscale 1 -qmin 1 -intra -acodec mp2 -ab 256000"
 			fi
 			if [[ $FORMAT == 'avi' ]]; then
-				FFMPEG_PARAMS="-c:v libx264 -preset ultrafast -qp 0"
+				if [[ "x$LOSSY" == "x1" ]]; then
+					FFMPEG_PARAMS="-c:v libx264 -preset ultrafast  -qp 0 -r 25 -c:a libmp3lame -ar 48000 -b:a 192k"
+				else
+					FFMPEG_PARAMS="-c:v libx264 -preset ultrafast  -qp 0 -r 25 -c:a libmp3lame -ar 48000 -b:a 192k"
+				fi
+			fi
+			if [[ $FORMAT == 'mp4' ]]; then
+				FFMPEG_PARAMS="-c:v libx264 -preset ultrafast -qp 0  -r 25 -c:a aac -strict experimental -b:a 192k -ar 48000 "
 			fi
 			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
 			echo "	else \\" >> "$MAKEFILE"
-			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" -i \"$RENDERPATH_AUDIO\" -vcodec mpeg2video -acodec mp2 -ab 256000 $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
+			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" -i \"$RENDERPATH_AUDIO\" $FFMPEG_PARAMS  -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
 			echo "	fi" >> "$MAKEFILE"
 			fi
 			
