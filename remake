@@ -686,9 +686,9 @@ write_rules(){
 			fi
 			if [[ $FORMAT == 'avi' ]]; then
 				if [[ "x$LOSSY" == "x1" ]]; then
-					FFMPEG_PARAMS="-c:v libx264 -preset ultrafast  -qp 0 -r 25 -c:a libmp3lame -ar 48000 -b:a 192k"
+					FFMPEG_PARAMS="-c:v libx264 -r 25 -c:a libmp3lame -ar 48000 -b:a 192k"
 				else
-					FFMPEG_PARAMS="-c:v libx264 -preset ultrafast  -qp 0 -r 25 -c:a libmp3lame -ar 48000 -b:a 192k"
+					FFMPEG_PARAMS="-c:v libx264 -qp 0 -r 25 -c:a libmp3lame -ar 48000 -b:a 192k"
 				fi
 			fi
 			if [[ $FORMAT == 'mp4' ]]; then
