@@ -281,7 +281,7 @@ write_rules(){
 	fi
 	
 	# Format should be forced to PNG if snapshot is requested
-	if [[ "$3" == 'snapshot' && $FORMAT != 'mpg' && $FORMAT != 'avi' ]]; then
+	if [[ "$3" == 'snapshot' && $FORMAT != 'mpg' && $FORMAT != 'avi' && $FORMAT != 'mp4' ]]; then
 		FORMAT=png
 	fi
 	
@@ -633,14 +633,14 @@ write_rules(){
 			RENDERPATH_RIGHT_SEQUENCE="${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT"
 			
 			echo ".PHONY: stereo" >> "$MAKEFILE"
-			echo "stereo: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
+			echo "stereo: `escape "$RENDERPATH_STEREO.$FORMAT"`" >> "$MAKEFILE"
 			
 			#echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$TARGET"` $DEPS" >> "$MAKEFILE"
 			#if false && ( [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]] ); then
 			#echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "$RENDERPATH"`" >> "$MAKEFILE"
 			#else
-			echo ".PHONY: `escape "$RENDERPATH_STEREO.mpg"`" >> "$MAKEFILE"
-			echo "`escape "$RENDERPATH_STEREO.mpg"`: `escape "${RENDERPATH_LEFT_SEQUENCE}/file.lst"` `escape "${RENDERPATH_RIGHT_SEQUENCE}/file.lst"`" >> "$MAKEFILE"
+			echo ".PHONY: `escape "$RENDERPATH_STEREO.$FORMAT"`" >> "$MAKEFILE"
+			echo "`escape "$RENDERPATH_STEREO.$FORMAT"`: `escape "${RENDERPATH_LEFT_SEQUENCE}/file.lst"` `escape "${RENDERPATH_RIGHT_SEQUENCE}/file.lst"`" >> "$MAKEFILE"
 			#fi
 			
 			if [ ! -z $OPT_THREADS ]; then
@@ -677,7 +677,7 @@ write_rules(){
 			echo "	mkdir \"${RENDERPATH_STEREO}.$STEREO_FORMAT\"" >> "$MAKEFILE"
 			echo "	for file in \`cd \"${PROJECTROOT}/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\"; ls *.$STEREO_FORMAT\`; do convert \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" \"$PROJECTROOT/render/stereo_cache/right/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/\$\$file\" -append \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\$\$file\"; done" >> "$MAKEFILE"
 			echo "	cp -f \"$PROJECTROOT/render/stereo_cache/left/render/$TARGETDIR/`basename "$1"`.$STEREO_FORMAT/file.lst\" \"${RENDERPATH_STEREO}.$STEREO_FORMAT/\"" >> "$MAKEFILE"
-			if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]]; then
+			if [[ $FORMAT == 'mpg' ]] || [[ $FORMAT == 'avi' ]] || [[ $FORMAT == "mp4" ]]; then
 			#echo "	-ffmpeg -y -i \"$RENDERPATH\" -vn -acodec copy \"$RENDERPATH_AUDIO\"" >> "$MAKEFILE"
 			echo "	if [ ! -e \"$RENDERPATH_AUDIO\" ] || [[ \`stat -c%s \"$RENDERPATH_AUDIO\"\` == 0 ]];then \\" >> "$MAKEFILE"
 			if [[ $FORMAT == 'mpg' ]]; then
@@ -685,14 +685,18 @@ write_rules(){
 				#FFMPEG_PARAMS="-vcodec mpeg2video -pix_fmt yuv422p -qscale 1 -qmin 1 -intra -acodec mp2 -ab 256000"
 			fi
 			if [[ $FORMAT == 'avi' ]]; then
-				if [[ "x$LOSSY" == "x1" ]]; then
-					FFMPEG_PARAMS="-c:v libx264 -r 25 -c:a libmp3lame -ar 48000 -b:a 192k"
-				else
-					FFMPEG_PARAMS="-c:v libx264 -qp 0 -r 25 -c:a libmp3lame -ar 48000 -b:a 192k"
+				FFMPEG_PARAMS="-c:v libx264 -tune fastdecode -c:a libmp3lame -ar 48000 -b:a 192k"
+				if [[ "x$LOSSY" != "x1" ]]; then
+					FFMPEG_PARAMS="$FFMPEG_PARAMS -qp 0"
 				fi
 			fi
 			if [[ $FORMAT == 'mp4' ]]; then
-				FFMPEG_PARAMS="-c:v libx264 -preset ultrafast -qp 0  -r 25 -c:a aac -strict experimental -b:a 192k -ar 48000 "
+				# MP4 + YUV420p = Vegas-compatible x264 (you need QuickTime installed)
+				# But with YUV420p you will get slight color distortion (https://trac.ffmpeg.org/wiki/x264EncodingGuide#Encodingfordumbplayers)
+				FFMPEG_PARAMS="-c:v libx264 -c:a aac -strict experimental -tune fastdecode -pix_fmt yuv420p -b:a 192k -ar 48000 "
+				if [[ "x$LOSSY" != "x1" ]]; then
+					FFMPEG_PARAMS="$FFMPEG_PARAMS -qp 0"
+				fi
 			fi
 			echo "	ffmpeg -y -i \"${RENDERPATH_STEREO}.$STEREO_FORMAT/file.%04d.$STEREO_FORMAT\" $FFMPEG_PARAMS -r $FPS \"${RENDERPATH_STEREO}.$FORMAT\"; \\" >> "$MAKEFILE"
 			echo "	else \\" >> "$MAKEFILE"

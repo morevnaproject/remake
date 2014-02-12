@@ -363,7 +363,7 @@ rules(){
 	if [[ $BLENDERFORMAT == 'MPG' ]]; then
 		BLENDERFORMAT="MPEG"
 	fi
-	if [[ $BLENDERFORMAT == 'AVI' ]]; then
+	if [[ $BLENDERFORMAT == 'AVI' ]] || [[ $BLENDERFORMAT == 'MP4' ]]; then
 		BLENDERFORMAT="MPEG"
 	fi
 	
